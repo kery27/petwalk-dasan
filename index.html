@@ -161,15 +161,16 @@
   .route-panel {
     position: absolute; bottom: 92px; left: 14px; right: 14px; z-index: 10;
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
-    padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;
     font-size: 13px; box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.16);
     opacity: 0; transform: translateY(10px) scale(0.98); pointer-events: none;
     transition: opacity 0.22s ease, transform 0.22s ease;
   }
   .route-panel.is-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .route-panel-row { display: flex; align-items: center; gap: 12px; }
   .route-panel label {
     white-space: nowrap; font-weight: 700; color: var(--ink);
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; gap: 6px; width: 92px; flex-shrink: 0;
   }
   .route-panel .icon { color: var(--accent); }
   .route-panel select {
@@ -252,8 +253,14 @@
 </div>
 
 <div class="route-panel" id="route-panel">
-  <label for="dog-size-select"><span class="icon" data-icon="dog"></span>우리 아이 크기</label>
-  <select id="dog-size-select"></select>
+  <div class="route-panel-row">
+    <label for="route-select"><span class="icon" data-icon="leaf"></span>코스 선택</label>
+    <select id="route-select"></select>
+  </div>
+  <div class="route-panel-row">
+    <label for="dog-size-select"><span class="icon" data-icon="dog"></span>우리 아이 크기</label>
+    <select id="dog-size-select"></select>
+  </div>
 </div>
 
 <div class="bottom-bar">
@@ -311,6 +318,7 @@
   var routeBtn = document.getElementById('route-btn');
   var routeBtnLabel = routeBtn.querySelector('.btn-label');
   var routePanel = document.getElementById('route-panel');
+  var routeSelect = document.getElementById('route-select');
   var dogSizeSelect = document.getElementById('dog-size-select');
   var cardLinkBtn = document.getElementById('card-link-btn');
   var statusText = document.getElementById('status-text');
@@ -384,6 +392,7 @@
   var recommendedVisible = false;
   var routeAnchor = null; // 실제 위치를 받아오면 [lat,lng], 못 받아오면 null(=다산동 예시 좌표 그대로)
   var routeAnchorResolved = false; // 위치 요청을 한 번 시도했는지(성공/실패 무관) — 매번 다시 묻지 않기 위함
+  var selectedRouteIndex = 0; // 여러 루트를 한꺼번에 보여주지 않고, 고른 것 하나만 지도에 표시
 
   // 산책 보상 개념 자체를 없애기로 한 결정(2026-09-02, PROJECT_CONTEXT.md "최종 결정: 보상
   // 개념 자체를 폐기" 참고)에 따라, 아래 기록은 달성/실패를 판정하지 않는 순수 정보성 통계다.
@@ -505,49 +514,82 @@
     });
   }
 
-  // 선택된 견종 크기 기준으로 매번 새로 그린다 — 크기를 바꾸면 코스별 소요 시간과 "적합/무리"
+  // 처음엔 여러 루트를 한꺼번에 다 보여줬는데, "코스 선택"에서 고른 루트 하나만 지도에
+  // 표시하도록 바꿈(2026-09-23) — selectedRouteIndex가 가리키는 루트만 그린다. 선택된
+  // 견종 크기 기준으로 매번 새로 그린다 — 크기를 바꾸면 코스별 소요 시간과 "적합/무리"
   // 색상이 즉시 다시 계산돼야 하므로, 캐시-무효화보다 매번 재계산이 더 단순함(경로 모양 자체는
   // getRouteGeometry가 캐시하므로 이 부분은 네트워크 호출 없이 빠르게 끝남).
   function buildRecommendedLayer() {
     var profile = DOG_SIZE_PROFILES[dogSize];
+    var route = RECOMMENDED_ROUTES[selectedRouteIndex];
     var layer = L.layerGroup();
-    var tasks = RECOMMENDED_ROUTES.map(function (route) {
-      return getRouteGeometry(route).then(function (geometry) {
-        var distanceKm = computeRouteDistanceKm(geometry);
-        var minutes = Math.max(1, Math.round(distanceKm / profile.speedKmh * 60));
-        var tooLong = distanceKm > profile.maxRecommendedKm;
+    return getRouteGeometry(route).then(function (geometry) {
+      var distanceKm = computeRouteDistanceKm(geometry);
+      var minutes = Math.max(1, Math.round(distanceKm / profile.speedKmh * 60));
+      var tooLong = distanceKm > profile.maxRecommendedKm;
 
-        var line = L.polyline(geometry, {
-          color: tooLong ? '#c98a2e' : '#5f8f5a', weight: 4, opacity: 0.85,
-          dashArray: route.isFallback ? '8 8' : null // 실제 도로 경로는 실선, 대체 경로만 점선으로 구분
-        });
-        var flagIcon = L.divIcon({
-          className: 'route-flag', html: svgIcon('leaf', 16),
-          iconSize: [30, 30], iconAnchor: [15, 26]
-        });
-        var marker = L.marker(geometry[0], { icon: flagIcon });
-        var warning = tooLong
-          ? '<div class="popup-warning">' + svgIcon('warning', 14) + '<span>' +
-            profile.label.split(' (')[0] + '에게는 다소 길 수 있는 코스예요</span></div>'
-          : '';
-        var fallbackNote = route.isFallback
-          ? '<br><small>(실제 도로 경로를 불러오지 못해 대략적으로 표시)</small>'
-          : '';
-        // 내 위치 기준으로 옮긴 루트는 "아울렛 둘레길"처럼 다산동 지명을 쓰면 실제 장소와
-        // 안 맞으니, 이때는 지명 없는 일반 이름/설명(genericName/genericDesc)을 대신 쓴다.
-        var displayName = routeAnchor ? route.genericName : route.name;
-        var displayDesc = routeAnchor ? route.genericDesc : route.desc;
-        marker.bindPopup(
-          '<div class="popup-title">' + svgIcon('leaf', 15) + '<span>' + displayName + '</span></div>' +
-          displayDesc + '<br>' +
-          distanceKm.toFixed(1) + 'km · 약 ' + minutes + '분' + warning + fallbackNote
-        );
-
-        line.addTo(layer);
-        marker.addTo(layer);
+      var line = L.polyline(geometry, {
+        color: tooLong ? '#c98a2e' : '#5f8f5a', weight: 4, opacity: 0.85,
+        dashArray: route.isFallback ? '8 8' : null // 실제 도로 경로는 실선, 대체 경로만 점선으로 구분
       });
+      var flagIcon = L.divIcon({
+        className: 'route-flag', html: svgIcon('leaf', 16),
+        iconSize: [30, 30], iconAnchor: [15, 26]
+      });
+      var marker = L.marker(geometry[0], { icon: flagIcon });
+      var warning = tooLong
+        ? '<div class="popup-warning">' + svgIcon('warning', 14) + '<span>' +
+          profile.label.split(' (')[0] + '에게는 다소 길 수 있는 코스예요</span></div>'
+        : '';
+      var fallbackNote = route.isFallback
+        ? '<br><small>(실제 도로 경로를 불러오지 못해 대략적으로 표시)</small>'
+        : '';
+      // 내 위치 기준으로 옮긴 루트는 "아울렛 둘레길"처럼 다산동 지명을 쓰면 실제 장소와
+      // 안 맞으니, 이때는 지명 없는 일반 이름/설명(genericName/genericDesc)을 대신 쓴다.
+      var displayName = routeAnchor ? route.genericName : route.name;
+      var displayDesc = routeAnchor ? route.genericDesc : route.desc;
+      marker.bindPopup(
+        '<div class="popup-title">' + svgIcon('leaf', 15) + '<span>' + displayName + '</span></div>' +
+        displayDesc + '<br>' +
+        distanceKm.toFixed(1) + 'km · 약 ' + minutes + '분' + warning + fallbackNote
+      );
+
+      line.addTo(layer);
+      marker.addTo(layer);
+      return layer;
     });
-    return Promise.all(tasks).then(function () { return layer; });
+  }
+
+  // route-select 드롭다운 옵션을 채운다 — routeAnchor 유무에 따라 다산동 지명/일반 이름 중
+  // 하나를 보여줘야 해서(위 buildRecommendedLayer의 displayName 로직과 동일한 기준), 위치
+  // anchor가 바뀔 때마다(resolveRouteAnchor 완료 시, locateMe 성공 시) 다시 호출해준다.
+  function populateRouteSelect() {
+    routeSelect.innerHTML = '';
+    RECOMMENDED_ROUTES.forEach(function (route, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = routeAnchor ? route.genericName : route.name;
+      if (i === selectedRouteIndex) opt.selected = true;
+      routeSelect.appendChild(opt);
+    });
+  }
+  populateRouteSelect();
+
+  routeSelect.addEventListener('change', function () {
+    selectedRouteIndex = parseInt(routeSelect.value, 10);
+    refreshRecommendedLayer();
+  });
+
+  // 추천 루트가 켜져 있을 때 화면을 다시 그린다(코스 선택/견종 크기가 바뀔 때 공용으로 씀) —
+  // 꺼져 있으면 아무 것도 안 함(다음에 켤 때 buildRecommendedLayer가 최신 상태로 그림).
+  function refreshRecommendedLayer() {
+    if (!recommendedVisible) return;
+    var oldLayer = recommendedLayer;
+    buildRecommendedLayer().then(function (layer) {
+      if (oldLayer) map.removeLayer(oldLayer);
+      recommendedLayer = layer;
+      if (recommendedVisible) recommendedLayer.addTo(map);
+    });
   }
 
   // "추천 루트"를 처음 켤 때 위치를 한 번 시도한다 — 성공하면 그 위치를 anchor로 써서 루트를
@@ -589,6 +631,7 @@
       routeBtn.disabled = true;
       routeBtnLabel.textContent = '불러오는 중...';
       resolveRouteAnchor().then(function () {
+        populateRouteSelect(); // anchor가 방금 정해졌을 수 있으니 옵션 라벨(다산동 지명/일반 이름) 갱신
         return buildRecommendedLayer();
       }).then(function (layer) {
         recommendedLayer = layer;
@@ -620,16 +663,9 @@
   dogSizeSelect.addEventListener('change', function () {
     dogSize = dogSizeSelect.value;
     try { localStorage.setItem(DOG_SIZE_KEY, dogSize); } catch (e) { /* 저장 실패해도 이번 세션 선택은 유지 */ }
-    if (recommendedVisible) {
-      // 경로 모양(geometry)은 route 객체에 캐시돼 있어 네트워크 호출 없이 바로 재계산만 하므로
-      // 빠르게 끝남 — 로딩 문구를 따로 띄우지 않아도 됨.
-      var oldLayer = recommendedLayer;
-      buildRecommendedLayer().then(function (layer) {
-        if (oldLayer) map.removeLayer(oldLayer);
-        recommendedLayer = layer;
-        if (recommendedVisible) recommendedLayer.addTo(map);
-      });
-    }
+    // 경로 모양(geometry)은 route 객체에 캐시돼 있어 네트워크 호출 없이 바로 재계산만 하므로
+    // 빠르게 끝남 — 로딩 문구를 따로 띄우지 않아도 됨.
+    refreshRecommendedLayer();
   });
 
   // 카드 화면(card-story.html)이 읽어가도록 이번 산책 기록을 저장하고, 총 누적 거리/스트릭을
@@ -725,14 +761,8 @@
         routeAnchor = coord;
         routeAnchorResolved = true;
         RECOMMENDED_ROUTES.forEach(function (r) { r.geometry = null; }); // 이전 anchor로 캐시된 경로 무효화
-        if (recommendedVisible) {
-          var oldLayer = recommendedLayer;
-          buildRecommendedLayer().then(function (layer) {
-            if (oldLayer) map.removeLayer(oldLayer);
-            recommendedLayer = layer;
-            if (recommendedVisible) recommendedLayer.addTo(map);
-          });
-        }
+        populateRouteSelect(); // 다산동 지명 → 일반 이름으로 옵션 라벨 갱신
+        refreshRecommendedLayer();
       },
       function (err) {
         console.warn('현재 위치를 가져오지 못했습니다:', err.message);
