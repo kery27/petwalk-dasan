@@ -441,6 +441,33 @@
       ]
     }
   ];
+
+  // course-builder.html(코스 관리자 도구)에서 저장한 코스를 불러와 합친다 — 두 화면이 같은
+  // 오리진(kery27.github.io)이라 localStorage를 공유하므로, 코드를 복사해 index.html에
+  // 붙여넣지 않아도 저장하는 즉시 여기 "코스 선택" 목록에 나타난다.
+  // ⚠️ isAuthored: true로 표시해서 위 3개 예시 루트와 다르게 취급함 — 예시 루트는 가짜
+  // 기준점(DEFAULT_CENTER) 주변의 "상대적 도형"이라 anchorWaypoints()로 실제 위치에 맞게
+  // 옮기지만(위 "내 위치 주변으로 옮기기" 참고), 직접 그린 코스는 지도의 실제 좌표를 그대로
+  // 찍은 것이라 옮기면 안 됨 — getRouteGeometry()/buildRecommendedLayer()에서 이 플래그로
+  // 분기 처리한다.
+  var COURSE_BUILDER_STATE_KEY = 'petwalk_course_builder_state';
+  function loadAuthoredRoutes() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(COURSE_BUILDER_STATE_KEY));
+      if (!raw || !Array.isArray(raw.drafts)) return [];
+      return raw.drafts
+        .filter(function (d) { return d && d.name && Array.isArray(d.waypoints) && d.waypoints.length >= 2; })
+        .map(function (d) {
+          return {
+            name: d.name, genericName: d.genericName || d.name,
+            desc: d.desc || '', genericDesc: d.genericDesc || d.desc || '',
+            waypoints: d.waypoints, isAuthored: true
+          };
+        });
+    } catch (e) { return []; }
+  }
+  RECOMMENDED_ROUTES = RECOMMENDED_ROUTES.concat(loadAuthoredRoutes());
+
   // 견종별 정확한 데이터베이스는 프로토타입 범위를 벗어나서(품종별 실측 보행 속도 자료가 없음),
   // 대신 소/중/대형견 3단계 크기 프로필로 가볍게 근사한다 — 코스 소요 시간이 크기마다 달라지고,
   // 권장 거리를 넘는 코스는 지도에서 색으로 바로 구분되게 한다(아래 buildRecommendedLayer 참고).
@@ -629,7 +656,9 @@
   // 세션 중 한 번 정해지면 안 바뀌므로(아래 resolveRouteAnchor) 이 캐시도 계속 유효하다.
   function getRouteGeometry(route) {
     if (route.geometry) return Promise.resolve(route.geometry);
-    var waypoints = anchorWaypoints(route.waypoints, routeAnchor);
+    // 직접 그린 코스(isAuthored)는 실제 좌표를 찍은 것이라 옮기지 않는다 — anchorWaypoints는
+    // 다산동 예시 루트(가짜 기준점 주변 상대 도형)에만 적용.
+    var waypoints = route.isAuthored ? route.waypoints : anchorWaypoints(route.waypoints, routeAnchor);
     return fetchRoadRoute(waypoints).then(function (geo) {
       route.isFallback = !geo;
       route.geometry = geo || chaikinSmooth(waypoints, 3);
@@ -667,10 +696,13 @@
       var fallbackNote = route.isFallback
         ? '<br><small>(실제 도로 경로를 불러오지 못해 대략적으로 표시)</small>'
         : '';
-      // 내 위치 기준으로 옮긴 루트는 "아울렛 둘레길"처럼 다산동 지명을 쓰면 실제 장소와
-      // 안 맞으니, 이때는 지명 없는 일반 이름/설명(genericName/genericDesc)을 대신 쓴다.
-      var displayName = routeAnchor ? route.genericName : route.name;
-      var displayDesc = routeAnchor ? route.genericDesc : route.desc;
+      // 내 위치 기준으로 옮긴 "예시" 루트는 "아울렛 둘레길"처럼 다산동 지명을 쓰면 실제
+      // 장소와 안 맞으니, 이때는 지명 없는 일반 이름/설명(genericName/genericDesc)을 대신
+      // 쓴다 — 하지만 직접 그린 코스(isAuthored)는 옮기지 않고 실제 위치 그대로라 이름도
+      // 항상 원래 이름을 쓴다.
+      var useGeneric = routeAnchor && !route.isAuthored;
+      var displayName = useGeneric ? route.genericName : route.name;
+      var displayDesc = useGeneric ? route.genericDesc : route.desc;
       marker.bindPopup(
         '<div class="popup-title">' + svgIcon('path', 15) + '<span>' + displayName + '</span></div>' +
         displayDesc + '<br>' +
@@ -691,7 +723,8 @@
     RECOMMENDED_ROUTES.forEach(function (route, i) {
       var opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = routeAnchor ? route.genericName : route.name;
+      var useGeneric = routeAnchor && !route.isAuthored;
+      opt.textContent = useGeneric ? route.genericName : route.name;
       if (i === selectedRouteIndex) opt.selected = true;
       routeSelect.appendChild(opt);
     });
