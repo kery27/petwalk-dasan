@@ -91,11 +91,14 @@
      하나 + 드롭다운으로 묶음(2026-09-23) — 지도 화면에 기능이 계속 추가될 걸 감안해서
      화면이 안 복잡해지게. */
   .menu-wrap { position: relative; flex-shrink: 0; pointer-events: auto; }
+  /* 줌/내 위치 컨트롤과 크기(34px)·둥글기(--radius-md)를 맞춰서 세로로 나란히 놓였을 때
+     한 줄로 정렬돼 보이게 함(2026-09-23, "정렬이 안 맞아 보인다" 피드백으로 맞춤 — 이전엔
+     40px에 --radius-lg라 아래 줌 컨트롤보다 크고 둥글어서 어긋나 보였음). */
   .menu-btn {
-    width: 40px; height: 40px; padding: 0; border: 1px solid var(--panel-border);
+    width: 34px; height: 34px; padding: 0; border: 1px solid var(--panel-border);
     background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%);
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border-radius: var(--radius-lg); color: var(--ink); cursor: pointer;
+    border-radius: var(--radius-md); color: var(--ink); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(var(--shadow-rgb), 0.12);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -219,10 +222,16 @@
 
   /* 확대/축소·내 위치 컨트롤: Leaflet 기본 각진 회색 버튼 대신 앱 톤에 맞춘
      둥근 사각형(--radius-md) + 글로시 입체감으로 재도색. margin-top: 72px는 페이지가 뜨기
-     전 잠깐 쓰이는 기본값일 뿐 — 실제로는 JS의 positionZoomControl()이 top-bar 우측
-     칩 스택(카드/코스 관리)의 실측 높이를 재서 매번 인라인으로 덮어쓴다(칩이 하나 더
-     늘면서 고정값과 겹쳤던 버그, route-panel/하단바와 같은 종류의 문제). */
+     전 잠깐 쓰이는 기본값일 뿐 — 실제로는 JS의 positionZoomControl()이 위 메뉴 버튼의
+     실측 높이를 재서 매번 인라인으로 덮어쓴다(칩이 하나 더 늘면서 고정값과 겹쳤던 버그,
+     route-panel/하단바와 같은 종류의 문제). margin-right는 Leaflet 기본값(10px)이 메뉴
+     버튼의 오른쪽 여백(top-bar의 right:14px)과 안 맞아 두 컬럼이 어긋나 보였던 것을
+     14px로 맞춰서 고침("정렬이 안 맞아 보인다" 피드백, 2026-09-23). Leaflet은 각 컨트롤
+     자체에 margin-right:10px를 개별로 주기 때문에(컨테이너가 아니라 .leaflet-control에),
+     컨테이너에 margin-right를 더하면 10+14로 겹쳐 더 밀려버려서 — 컨트롤 쪽 마진을 직접
+     14px로 덮어씀. */
   .leaflet-top.leaflet-right { margin-top: 72px; }
+  .leaflet-right .leaflet-control { margin-right: 14px; }
   .leaflet-bar {
     border: none !important; border-radius: var(--radius-md) !important;
     overflow: hidden; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.18) !important;
