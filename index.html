@@ -276,6 +276,10 @@
       <span class="icon" data-icon="footprints"></span>
       <span>기록</span>
     </a>
+    <a class="card-chip" href="profile.html">
+      <span class="icon" data-icon="pawPrint"></span>
+      <span>프로필</span>
+    </a>
     <!-- 관리자 전용 도구 링크 — 당분간만 기본 화면에 달아둠(2026-09-23, PROJECT_CONTEXT.md
          "코스 관리자 도구" 참고). 일반 사용자 기능이 아니라서 --ink-soft로 덜 눈에 띄게 처리. -->
     <a class="card-chip tool-chip" href="course-builder.html">
@@ -482,10 +486,19 @@
     medium: { label: '중형견 (비글·시바견·웰시코기 등)', speedKmh: 3.5, maxRecommendedKm: 2.0 },
     large: { label: '대형견 (리트리버·진돗개·허스키 등)', speedKmh: 4.5, maxRecommendedKm: 4.0 }
   };
+  // 크기 기본값 우선순위: 이 화면에서 직접 고른 적 있으면(DOG_SIZE_KEY) 그걸 그대로 쓰고,
+  // 없으면 profile.html에 등록해둔 크기(PROFILE_KEY)를 대신 쓴다 — 프로필을 등록해두면
+  // "우리 아이 크기"를 매번 다시 고를 필요가 없어짐. 둘 다 없으면 중형견 기본값.
+  var PROFILE_KEY = 'petwalk_profile';
   var dogSize = 'medium';
   try {
     var savedDogSize = localStorage.getItem(DOG_SIZE_KEY);
-    if (savedDogSize && DOG_SIZE_PROFILES[savedDogSize]) dogSize = savedDogSize;
+    if (savedDogSize && DOG_SIZE_PROFILES[savedDogSize]) {
+      dogSize = savedDogSize;
+    } else {
+      var profile = JSON.parse(localStorage.getItem(PROFILE_KEY));
+      if (profile && profile.size && DOG_SIZE_PROFILES[profile.size]) dogSize = profile.size;
+    }
   } catch (e) { /* 스토리지 접근 불가 환경 — 기본값(중형견)으로 계속 진행 */ }
 
   var recommendedLayer = null;
