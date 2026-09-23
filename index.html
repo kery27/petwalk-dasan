@@ -138,7 +138,7 @@
     box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.35);
   }
 
-  /* 추천 루트 시작점 깃발 마커 (div 아이콘 — JS에서 svgIcon('leaf')로 채움) */
+  /* 추천 루트 시작점 깃발 마커 (div 아이콘 — JS에서 svgIcon('path')로 채움) */
   .route-flag {
     width: 30px; height: 30px; border-radius: 50%;
     background: var(--panel); border: 2px solid var(--ok); color: var(--ok);
@@ -268,7 +268,7 @@
 
 <div class="bottom-bar" id="bottom-bar">
   <button class="btn btn-secondary" id="route-btn">
-    <span class="icon" data-icon="leaf"></span>
+    <span class="icon" data-icon="path"></span>
     <span class="btn-label">추천 루트</span>
   </button>
   <button class="btn btn-secondary" id="pin-btn" disabled>
@@ -291,7 +291,6 @@
   // @phosphor-icons/core 패키지의 regular SVG를 그대로 받아와 박아둔 것이라 임의로 그린
   // 아이콘이 아니다(index.html 상단 CSS 주석 참고). currentColor라 버튼 글자색을 그대로 따라간다.
   var ICON_PATHS = {
-    leaf: 'M223.45,40.07a8,8,0,0,0-7.52-7.52C139.8,28.08,78.82,51,52.82,94a87.09,87.09,0,0,0-12.76,49c.57,15.92,5.21,32,13.79,47.85l-19.51,19.5a8,8,0,0,0,11.32,11.32l19.5-19.51C81,210.73,97.09,215.37,113,215.94q1.67.06,3.33.06A86.93,86.93,0,0,0,162,203.18C205,177.18,227.93,116.21,223.45,40.07ZM153.75,189.5c-22.75,13.78-49.68,14-76.71.77l88.63-88.62a8,8,0,0,0-11.32-11.32L65.73,179c-13.19-27-13-54,.77-76.71,22.09-36.47,74.6-56.44,141.31-54.06C210.2,114.89,190.22,167.41,153.75,189.5Z',
     path: 'M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z',
     mapPin: 'M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z',
     cards: 'M184,72H40A16,16,0,0,0,24,88V200a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V88A16,16,0,0,0,184,72Zm0,128H40V88H184V200ZM232,56V176a8,8,0,0,1-16,0V56H64a8,8,0,0,1,0-16H216A16,16,0,0,1,232,56Z',
@@ -552,7 +551,7 @@
         dashArray: route.isFallback ? '8 8' : null // 실제 도로 경로는 실선, 대체 경로만 점선으로 구분
       });
       var flagIcon = L.divIcon({
-        className: 'route-flag', html: svgIcon('leaf', 16),
+        className: 'route-flag', html: svgIcon('path', 16),
         iconSize: [30, 30], iconAnchor: [15, 26]
       });
       var marker = L.marker(geometry[0], { icon: flagIcon });
@@ -568,7 +567,7 @@
       var displayName = routeAnchor ? route.genericName : route.name;
       var displayDesc = routeAnchor ? route.genericDesc : route.desc;
       marker.bindPopup(
-        '<div class="popup-title">' + svgIcon('leaf', 15) + '<span>' + displayName + '</span></div>' +
+        '<div class="popup-title">' + svgIcon('path', 15) + '<span>' + displayName + '</span></div>' +
         displayDesc + '<br>' +
         distanceKm.toFixed(1) + 'km · 약 ' + minutes + '분' + warning + fallbackNote
       );
