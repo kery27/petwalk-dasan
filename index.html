@@ -100,6 +100,10 @@
   }
   .card-chip:active { transform: scale(0.95); box-shadow: inset 0 2px 6px rgba(0,0,0,0.08); }
 
+  .top-right-stack { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+  /* 관리자 도구 링크 — "카드"보다 덜 중요한 임시 링크라 강조색(accent) 대신 톤 낮춘 색 사용 */
+  .tool-chip { color: var(--ink-soft); padding: 8px 12px; font-size: 12px; }
+
   /* ── 하단바: 떠 있는 액션 그룹. 주 행동(산책 시작)이 시각적으로 더 무겁게 ──
      버튼에 상단 하이라이트 + 하단 그라데이션으로 "볼록한" 입체감을 주고,
      눌렀을 때(:active)는 반대로 안쪽 그림자를 넣어 "눌리는" 느낌을 낸다. */
@@ -155,6 +159,18 @@
   .popup-warning { display: flex; align-items: center; gap: 5px; color: var(--warn); margin-top: 4px; }
   .popup-warning .icon { color: var(--warn); }
 
+  /* 핀 팝업 — 메모(있으면) + 삭제 버튼. X는 팝업만 닫고, 이 버튼이 핀 자체를 지운다. */
+  .pin-popup { display: flex; flex-direction: column; gap: 8px; min-width: 120px; }
+  .pin-popup-memo { color: var(--ink); }
+  .pin-popup-empty { color: var(--ink-soft); font-style: italic; }
+  .pin-delete-btn {
+    display: flex; align-items: center; gap: 5px; align-self: flex-start;
+    border: none; background: none; padding: 2px 0; cursor: pointer;
+    font-family: 'Pretendard', sans-serif; font-size: 12px; font-weight: 700;
+    color: #b3392b;
+  }
+  .pin-delete-btn:hover { text-decoration: underline; }
+
   /* 추천 루트를 켰을 때만 나타나는 코스/견종 크기 선택 패널 (하단바 바로 위).
      display:none 대신 opacity/transform 전환으로 부드럽게 나타나도록 함(JS는
      is-visible 클래스만 토글 — index.html의 toggleRecommendedRoutes 참고).
@@ -186,8 +202,10 @@
   }
 
   /* 확대/축소·내 위치 컨트롤: Leaflet 기본 각진 회색 버튼 대신 앱 톤에 맞춘
-     둥근 사각형(--radius-md) + 글로시 입체감으로 재도색. 위치는 top-bar 캡슐
-     (top:14px, 높이 약 48px)과 안 겹치도록 그 아래로 띄움. */
+     둥근 사각형(--radius-md) + 글로시 입체감으로 재도색. margin-top: 72px는 페이지가 뜨기
+     전 잠깐 쓰이는 기본값일 뿐 — 실제로는 JS의 positionZoomControl()이 top-bar 우측
+     칩 스택(카드/코스 관리)의 실측 높이를 재서 매번 인라인으로 덮어쓴다(칩이 하나 더
+     늘면서 고정값과 겹쳤던 버그, route-panel/하단바와 같은 종류의 문제). */
   .leaflet-top.leaflet-right { margin-top: 72px; }
   .leaflet-bar {
     border: none !important; border-radius: var(--radius-md) !important;
@@ -249,10 +267,18 @@
     <span class="title">산책 다이어리</span>
     <span class="status" id="status-text">대기 중</span>
   </div>
-  <a class="card-chip" href="card-story.html">
-    <span class="icon" data-icon="cards"></span>
-    <span>카드</span>
-  </a>
+  <div class="top-right-stack">
+    <a class="card-chip" href="card-story.html">
+      <span class="icon" data-icon="cards"></span>
+      <span>카드</span>
+    </a>
+    <!-- 관리자 전용 도구 링크 — 당분간만 기본 화면에 달아둠(2026-09-23, PROJECT_CONTEXT.md
+         "코스 관리자 도구" 참고). 일반 사용자 기능이 아니라서 --ink-soft로 덜 눈에 띄게 처리. -->
+    <a class="card-chip tool-chip" href="course-builder.html">
+      <span class="icon" data-icon="wrench"></span>
+      <span>코스 관리</span>
+    </a>
+  </div>
 </div>
 
 <div class="route-panel" id="route-panel">
@@ -292,6 +318,7 @@
   // 아이콘이 아니다(index.html 상단 CSS 주석 참고). currentColor라 버튼 글자색을 그대로 따라간다.
   var ICON_PATHS = {
     path: 'M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z',
+    wrench: 'M226.76,69a8,8,0,0,0-12.84-2.88l-40.3,37.19-17.23-3.7-3.7-17.23,37.19-40.3A8,8,0,0,0,187,29.24,72,72,0,0,0,88,96,72.34,72.34,0,0,0,94,124.94L33.79,177c-.15.12-.29.26-.43.39a32,32,0,0,0,45.26,45.26c.13-.13.27-.28.39-.42L131.06,162A72,72,0,0,0,232,96,71.56,71.56,0,0,0,226.76,69ZM160,152a56.14,56.14,0,0,1-27.07-7,8,8,0,0,0-9.92,1.77L67.11,211.51a16,16,0,0,1-22.62-22.62L109.18,133a8,8,0,0,0,1.77-9.93,56,56,0,0,1,58.36-82.31l-31.2,33.81a8,8,0,0,0-1.94,7.1L141.83,108a8,8,0,0,0,6.14,6.14l26.35,5.66a8,8,0,0,0,7.1-1.94l33.81-31.2A56.06,56.06,0,0,1,160,152Z',
     mapPin: 'M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z',
     cards: 'M184,72H40A16,16,0,0,0,24,88V200a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V88A16,16,0,0,0,184,72Zm0,128H40V88H184V200ZM232,56V176a8,8,0,0,1-16,0V56H64a8,8,0,0,1,0-16H216A16,16,0,0,1,232,56Z',
     compass: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z',
@@ -301,7 +328,8 @@
     play: 'M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z',
     stop: 'M200,40H56A16,16,0,0,0,40,56V200a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,160H56V56H200V200Z',
     plus: 'M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z',
-    minus: 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z'
+    minus: 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z',
+    trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z'
   };
   function svgIcon(name, size) {
     var d = ICON_PATHS[name];
@@ -326,6 +354,7 @@
   var cardLinkBtn = document.getElementById('card-link-btn');
   var statusText = document.getElementById('status-text');
   var bottomBar = document.getElementById('bottom-bar');
+  var topRightStack = document.querySelector('.top-right-stack');
 
   // route-panel(코스/견종 크기 선택)이 하단바와 겹치는 버그 수정용 — 하단바는
   // flex-wrap: wrap이라 버튼이 4개(추천 루트/핀 꽂기/산책 시작/카드 만들기)로 늘어나면
@@ -337,6 +366,18 @@
   }
   positionRoutePanel();
   window.addEventListener('resize', positionRoutePanel);
+
+  // 줌 컨트롤(topright)이 top-bar 우측 칩 스택(카드/코스 관리)과 겹치지 않게, 그 실측
+  // 높이를 재서 여백을 맞춘다 — 위 positionRoutePanel과 같은 이유(칩이 늘어나도
+  // CSS 고정값으로는 못 따라감, "코스 관리" 칩을 추가하면서 실제로 겹쳤던 버그).
+  // .leaflet-top.leaflet-right는 initMap()이 줌 컨트롤을 추가한 뒤에야 DOM에 생기므로
+  // initMap() 호출 이후에만 쓸 수 있다.
+  function positionZoomControl() {
+    var zoomWrap = document.querySelector('.leaflet-top.leaflet-right');
+    if (!zoomWrap || !topRightStack) return;
+    zoomWrap.style.marginTop = (topRightStack.offsetHeight + 14 + 10) + 'px'; // top-bar top(14) + 여백(10)
+  }
+  window.addEventListener('resize', positionZoomControl);
 
   var map, watchId = null, walking = false, walkStartTime = null;
   var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
@@ -414,12 +455,64 @@
   // 스트릭이 끊겨도 페널티 문구 없이 그냥 조용히 0으로 보여준다.
   var WALKS_KEY = 'petwalk_walks';
   var LAST_WALK_KEY = 'petwalk_last_walk';
+  var PINS_KEY = 'petwalk_pins'; // 산책 중 남긴 핀 — 예전엔 지도 위 표시만 하고 저장 안 했음(TODO였던 부분)
 
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
 
   function loadWalks() {
     try { return JSON.parse(localStorage.getItem(WALKS_KEY)) || []; } catch (e) { return []; }
+  }
+
+  function loadPins() {
+    try { return JSON.parse(localStorage.getItem(PINS_KEY)) || []; } catch (e) { return []; }
+  }
+
+  // id는 Date.now()를 그대로 쓴다 — 한 사람이 같은 밀리초에 핀을 두 번 찍을 일은 없으니
+  // 별도 ID 생성 로직 없이 "언제 찍었는지"와 "어느 핀인지"를 한 값으로 겸함.
+  function savePin(lat, lng, memo) {
+    var pins = loadPins();
+    var id = Date.now();
+    pins.push({ id: id, lat: lat, lng: lng, memo: memo || null });
+    try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) { /* 저장 실패해도 화면엔 이미 표시됨 */ }
+    return id;
+  }
+
+  function deletePin(id) {
+    var pins = loadPins().filter(function (p) { return p.id !== id; });
+    try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) { /* 저장 실패해도 화면에서는 이미 지워짐 */ }
+  }
+
+  // 핀 마커를 만드는 로직 — 방금 찍은 핀(pinBtn 클릭)과 저장돼 있던 핀(앱 재실행 시 복원)
+  // 둘 다 이 함수를 통해서 만든다(그리기 방식이 갈라지지 않게 하나로 통일). 팝업의 X는
+  // 팝업을 닫을 뿐이고, 안의 "핀 삭제" 버튼이 핀 자체를 지도와 저장소에서 지운다.
+  function addPinMarker(id, lat, lng, memo) {
+    var icon = L.divIcon({ className: 'pin-marker', iconSize: [28, 28], iconAnchor: [14, 28] });
+    var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'pin-popup';
+    var memoEl = document.createElement('div');
+    memoEl.className = memo ? 'pin-popup-memo' : 'pin-popup-empty';
+    memoEl.textContent = memo || '메모 없음';
+    wrap.appendChild(memoEl);
+
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'pin-delete-btn';
+    delBtn.innerHTML = svgIcon('trash', 14) + '<span>이 핀 삭제</span>';
+    delBtn.addEventListener('click', function () {
+      map.removeLayer(marker);
+      deletePin(id);
+    });
+    wrap.appendChild(delBtn);
+
+    marker.bindPopup(wrap);
+    return marker;
+  }
+
+  function restoreSavedPins() {
+    loadPins().forEach(function (p) { addPinMarker(p.id, p.lat, p.lng, p.memo); });
   }
 
   function computeStreakDays(walks) {
@@ -704,6 +797,8 @@
   }
 
   initMap();
+  positionZoomControl();
+  restoreSavedPins();
   showIdleStats();
   // 앱을 열면 바로 내 위치를 보여달라는 요청(2026-09-23) — locateMe()가 이미 권한 이유를
   // 먼저 설명하는 confirm()을 포함하고 있어(CLAUDE.md 규칙), 자동 호출해도 안내 없이
@@ -852,10 +947,9 @@
     if (!walking || routeCoords.length === 0) return;
     var last = routeCoords[routeCoords.length - 1];
     var memo = prompt('이 지점에 남길 메모가 있나요? (선택)');
-    var icon = L.divIcon({ className: 'pin-marker', iconSize: [28, 28], iconAnchor: [14, 28] });
-    var marker = L.marker(last, { icon: icon }).addTo(map);
-    if (memo) marker.bindPopup(memo).openPopup();
-    // TODO: 핀 데이터도 현재는 지도 위 표시만 하고 영구 저장하지 않음
+    var id = savePin(last[0], last[1], memo); // localStorage에 저장 — 앱을 다시 열어도 남아있음
+    var marker = addPinMarker(id, last[0], last[1], memo);
+    if (memo) marker.openPopup();
   });
 })();
 </script>
