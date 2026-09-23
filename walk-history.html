@@ -32,9 +32,13 @@
     background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink);
     box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
   }
+  /* Black Han Sans는 굵기가 하나뿐이라 항상 아주 두꺼운데, 제목처럼 획이 많은 한글
+     조합에서는 오히려 안 읽힌다는 피드백을 받음(카드 시안 B에서 같은 이유로 이미 한 번
+     뺐던 적 있음, PROJECT_CONTEXT.md "시안 B: 스킬 제목 폰트/색상 커스터마이징" 참고) —
+     두께 대신 크기로 존재감을 냄. */
   .topbar h1 {
-    font-family: 'Black Han Sans', 'Pretendard', sans-serif;
-    font-size: 20px; margin: 0; letter-spacing: -0.01em;
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-weight: 800; font-size: 22px; margin: 0; letter-spacing: -0.01em;
   }
   .subtitle { margin: 6px 0 18px; font-size: 13px; color: var(--ink-soft); }
 
