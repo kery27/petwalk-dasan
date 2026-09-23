@@ -383,7 +383,19 @@
   var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
   var routeLine;
   var myLocationMarker = null;
-  var locationPermissionExplained = false; // 세션당 한 번만 안내(CLAUDE.md: 권한 요청 전 이유 설명 필수)
+  // CLAUDE.md 규칙(권한 요청 전 이유 설명 필수)을 지키되, "한 번 동의했는데 새로고침마다
+  // 또 물어본다"는 피드백을 받아 localStorage에 저장하는 걸로 바꿈 — 예전엔 이 값이 그냥
+  // 메모리 변수(세션당 한 번)라 새로고침/앱 재실행마다 초기화돼서 매번 다시 물어봤었음.
+  // 브라우저 자체 위치 권한은 원래도 한 번 허용하면 계속 기억되는데, 우리 쪽 설명
+  // confirm()만 계속 다시 뜬 것.
+  var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';
+  var locationPermissionExplained = false;
+  try { locationPermissionExplained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 기본값(다시 안내)으로 진행 */ }
+
+  function markLocationExplained() {
+    locationPermissionExplained = true;
+    try { localStorage.setItem(LOCATION_EXPLAINED_KEY, '1'); } catch (e) { /* 저장 실패해도 이번 세션은 계속 진행 */ }
+  }
 
   // 산책 루트 추천 (2026-09-07 추가): 다른 유저 데이터 기반 추천은 회원/백엔드가 필요해서
   // "서비스 다이어트"로 보류된 B 영역에 해당함(PROJECT_CONTEXT.md 참고) — 대신 다산동 공원
@@ -718,7 +730,7 @@
       if (!confirm('내 위치 주변으로 추천 루트를 보여드리려면 위치 정보 접근 권한이 필요합니다. 허용할까요?')) {
         return Promise.resolve(null);
       }
-      locationPermissionExplained = true;
+      markLocationExplained();
     }
     return new Promise(function (resolve) {
       navigator.geolocation.getCurrentPosition(
@@ -856,7 +868,7 @@
     }
     if (!locationPermissionExplained) {
       if (!confirm('지도에 내 위치를 표시하려면 위치 정보 접근 권한이 필요합니다. 허용할까요?')) return;
-      locationPermissionExplained = true;
+      markLocationExplained();
     }
     navigator.geolocation.getCurrentPosition(
       function (pos) {
