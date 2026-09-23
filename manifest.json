@@ -1,0 +1,9 @@
+{
+  "name": "산책 다이어리",
+  "short_name": "산책다이어리",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7ede2",
+  "theme_color": "#f7ede2",
+  "icons": []
+}

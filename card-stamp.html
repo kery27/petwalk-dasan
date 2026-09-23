@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 카드 만들기 — 여권/스탬프형</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7ede2;
+    --accent: #f2b6a0;
+    --accent-dark: #d98a72;
+    --text: #4a3f35;
+    --panel: #fffaf3;
+    --line: #e5d9c8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { margin-bottom: 16px; }
+  header h1 { font-size: 18px; margin: 0 0 4px; }
+  header p { font-size: 12px; color: #8a7c6d; margin: 0; line-height: 1.5; }
+  header a { color: var(--accent-dark); }
+
+  .variant-nav { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .variant-nav a {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; text-decoration: none;
+    border: 1px solid var(--line); color: var(--text); background: var(--panel);
+  }
+  .variant-nav a.active { background: var(--accent-dark); color: white; border-color: var(--accent-dark); }
+
+  .note {
+    font-size: 12px; color: #8a7c6d; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 18px; line-height: 1.5;
+  }
+
+  .layout { display: flex; gap: 28px; align-items: flex-start; }
+  .preview-col { flex: 0 0 360px; position: sticky; top: 20px; }
+  .edit-col { flex: 1; min-width: 280px; }
+  @media (max-width: 760px) {
+    .layout { flex-direction: column; }
+    .preview-col { position: static; flex: none; width: 100%; }
+  }
+
+  .canvas-holder { display: flex; justify-content: center; margin-bottom: 18px; }
+  #card-canvas {
+    width: 100%; max-width: 340px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    touch-action: none;
+  }
+  .canvas-hint { text-align: center; font-size: 11px; color: #a8977f; margin-top: 8px; }
+
+  form { display: flex; flex-direction: column; gap: 12px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: #8a7c6d; }
+  .field input, .field select {
+    padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px;
+    background: white; color: var(--text); font-family: inherit;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn { flex: 1; border: none; border-radius: 999px; padding: 13px; font-size: 14px;
+    font-weight: 600; cursor: pointer; }
+  .btn-primary { background: var(--accent-dark); color: white; }
+  .btn-secondary { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+
+  .back-link { display: inline-block; margin-bottom: 12px; font-size: 13px; color: var(--accent-dark);
+    text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back-link" href="index.html">&larr; 산책 다이어리로 돌아가기</a>
+
+  <div class="variant-nav">
+    <a href="card.html">시안 A · 기본형 (전체 스탯)</a>
+    <a href="card-keyring.html">시안 B · 키링형 (실물 출력용)</a>
+    <a href="card-keyring-b1.html">시안 B-1 · 라운드 사각형</a>
+    <a href="card-story.html">시안 C · 스토리 공유형</a>
+    <a href="card-stamp.html" class="active">시안 D · 여권/스탬프형</a>
+  </div>
+
+  <header>
+    <h1>📍 산책 카드 — 여권/스탬프형</h1>
+    <p>게임 카드 문법 대신 "도장깨기 여권" 컨셉. 정보가 서류처럼 나열되고, 사진 모서리에 잉크
+    도장 같은 인증 마크가 찍힙니다. 아웃렛 매장별로 스탬프를 모으는 리텐션 구조로 자연스럽게
+    확장하기 좋은 방향이에요. 자세한 내용은 <a href="PROJECT_CONTEXT.md">PROJECT_CONTEXT.md</a> 참고.</p>
+  </header>
+
+  <div class="note">
+    사진은 브라우저 안에서만 처리되며 어디로도 전송되지 않습니다. "카드 이미지 저장"을 누르면
+    이 기기에 PNG로 다운로드됩니다.
+  </div>
+
+  <div class="layout">
+  <div class="preview-col">
+  <div class="canvas-holder">
+    <canvas id="card-canvas" width="680" height="1140"></canvas>
+  </div>
+  <div class="canvas-hint">사진 부분을 드래그하면 위치를, 스크롤(모바일은 두 손가락 핀치)로
+  확대·축소를 조절할 수 있어요</div>
+  </div>
+
+  <div class="edit-col">
+  <form id="card-form">
+    <div class="field">
+      <label for="photo">반려동물 사진</label>
+      <input type="file" id="photo" accept="image/*" capture="environment">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="pet-name">이름</label>
+        <input type="text" id="pet-name" value="뽀삐" maxlength="12">
+      </div>
+      <div class="field">
+        <label for="level">레벨 / 칭호</label>
+        <input type="text" id="level" value="Level 3 - 다산 탐험가" maxlength="20">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="rarity">등급 (별 개수 1~5)</label>
+        <input type="number" id="rarity" value="5" min="1" max="5">
+      </div>
+      <div class="field">
+        <label for="type-tag">속성 태그</label>
+        <input type="text" id="type-tag" value="공원산책형" maxlength="10">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="hp">컨디션 (0~100)</label>
+        <input type="number" id="hp" value="100" min="0" max="100">
+      </div>
+      <div class="field">
+        <label for="filter">사진 감성 필터</label>
+        <select id="filter">
+          <option value="pastel">파스텔</option>
+          <option value="holo">홀로그램톤</option>
+          <option value="vivid">비비드</option>
+          <option value="cartoon">카툰 (윤곽선+색상 단순화)</option>
+          <option value="none">필터 없음</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="dist-today">오늘 산책 거리 (km)</label>
+        <input type="number" id="dist-today" value="3.2" step="0.1" min="0">
+      </div>
+      <div class="field">
+        <label for="dist-total">누적 산책 거리 (km)</label>
+        <input type="number" id="dist-total" value="140" step="0.1" min="0">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="passive-select">발급 조건 특성 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="passive-select"></select>
+    </div>
+    <div class="field">
+      <label for="passive-title">특성 제목</label>
+      <input type="text" id="passive-title" maxlength="30">
+    </div>
+
+    <div class="field">
+      <label for="badge-select">획득 칭호 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="badge-select"></select>
+    </div>
+    <div class="field">
+      <label for="badge">획득 칭호</label>
+      <input type="text" id="badge" maxlength="50">
+    </div>
+  </form>
+
+  <div class="actions">
+    <button class="btn btn-secondary" id="redraw-btn" type="button">미리보기 갱신</button>
+    <button class="btn btn-primary" id="save-btn" type="button">카드 이미지 저장</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
+<script src="card-shared.js?v=9"></script>
+<script>
+(function () {
+  var CS = window.CardShared;
+  var canvas = document.getElementById('card-canvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+
+  var photoInput = document.getElementById('photo');
+  var petImage = null;
+
+  // 사진을 카드 폭 대부분을 채우는 큰 배너로 (예전엔 여권사진처럼 작아서 카드 아래쪽이 텅 비어
+  // 보인다는 피드백을 받고 키움 — 2026-08-26). 이후 세로로 더 크게 해달라는 요청으로 PHOTO_H를
+  // 늘림 — 아래쪽 레이아웃이 전부 PHOTO_H 기준 상대 좌표라, 캔버스 높이만 같이 늘리면 겹치지 않음.
+  var PHOTO_X = 60, PHOTO_Y = 90, PHOTO_W = 560, PHOTO_H = 480;
+  var PHOTO_RECT = { x: PHOTO_X, y: PHOTO_Y, w: PHOTO_W, h: PHOTO_H };
+  var photoOffset = { x: 0, y: 0 };
+  // 스크롤/핀치로 조절하는 확대 배율 — 1이 기본(cover-fit), 최대 3배까지 (2026-08-26 요청)
+  var photoZoom = 1;
+  var PHOTO_MIN_ZOOM = 1, PHOTO_MAX_ZOOM = 3;
+
+  function clampPhotoOffset() {
+    if (!petImage) return;
+    CS.clampOffset(photoOffset, CS.computePhotoFit(PHOTO_RECT, petImage, photoZoom));
+  }
+
+  var cartoonCache = { source: null, canvas: null };
+  function getPhotoDrawSource() {
+    if (val('filter') !== 'cartoon') return petImage;
+    if (cartoonCache.source !== petImage) {
+      cartoonCache.canvas = CS.applyCartoonEffect(petImage);
+      cartoonCache.source = petImage;
+    }
+    return cartoonCache.canvas;
+  }
+
+  var FILTER_MAP = CS.FILTER_MAP;
+
+  CS.buildCatalogSelect(document.getElementById('passive-select'), CS.PASSIVES,
+    document.getElementById('passive-title'), { value: '' }, 0);
+  // 이 시안은 특성 "설명"은 안 쓰고 제목만 쓰므로, buildCatalogSelect의 두 번째 입력칸은
+  // 실제 DOM에 없는 더미 객체로 대신 받아 무시한다.
+  CS.buildSimpleCatalogSelect(document.getElementById('badge-select'), CS.BADGES,
+    document.getElementById('badge'), 0);
+
+  CS.preloadEmoji(['🐾', '📍'], function () { renderCard(); });
+
+  function val(id) { return document.getElementById(id).value; }
+  function roundRect(x, y, w, h, r) { CS.roundRect(ctx, x, y, w, h, r); }
+
+  function drawPhoto() {
+    ctx.fillStyle = '#e9dccb';
+    ctx.fillRect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H);
+    ctx.clip();
+    if (petImage) {
+      var filterKey = val('filter');
+      var drawSource = getPhotoDrawSource();
+      ctx.filter = filterKey === 'cartoon' ? 'none' : (FILTER_MAP[filterKey] || 'none');
+      var fit = CS.computePhotoFit(PHOTO_RECT, drawSource, photoZoom);
+      var dx = PHOTO_X + (PHOTO_W - fit.dw) / 2 + photoOffset.x;
+      var dy = PHOTO_Y + (PHOTO_H - fit.dh) / 2 + photoOffset.y;
+      ctx.imageSmoothingEnabled = filterKey !== 'cartoon';
+      ctx.drawImage(drawSource, dx, dy, fit.dw, fit.dh);
+      ctx.imageSmoothingEnabled = true;
+      ctx.filter = 'none';
+    } else {
+      ctx.fillStyle = '#a89a86';
+      ctx.font = '18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('사진 자리', PHOTO_X + PHOTO_W / 2, PHOTO_Y + PHOTO_H / 2);
+    }
+    ctx.restore();
+    ctx.strokeStyle = '#8a6f4b';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H);
+
+    // 잉크 도장 (사진 모서리에 걸치도록, 살짝 회전)
+    var rarity = Math.max(1, Math.min(5, parseInt(val('rarity'), 10) || 1));
+    var starRow = '';
+    for (var s = 0; s < rarity; s++) starRow += '★';
+    ctx.save();
+    ctx.translate(PHOTO_X + PHOTO_W - 20, PHOTO_Y + PHOTO_H - 20);
+    ctx.rotate(-0.25);
+    ctx.strokeStyle = '#c1443a';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(0, 0, 76, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 62, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#c1443a';
+    ctx.font = '700 18px "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('산책', 0, -15);
+    ctx.fillText('인증', 0, 12);
+    ctx.font = '12px sans-serif';
+    ctx.fillText(starRow, 0, 38);
+    ctx.restore();
+  }
+
+  // 실제 매장별 스탬프 시스템은 아직 없어서(미정 사항), 지금 있는 등급(rarity) 값으로
+  // 채워지는 정도를 흉내만 낸 장식용 섹션 — 진짜 방문 인증이 아니라는 점을 라벨로 명시해둔다.
+  function drawStampRow(y) {
+    var rarity = Math.max(1, Math.min(5, parseInt(val('rarity'), 10) || 1));
+    var total = 5, r = 28, gap = 18;
+    var rowW = total * (r * 2) + (total - 1) * gap;
+    var startX = W / 2 - rowW / 2 + r;
+    for (var i = 0; i < total; i++) {
+      var cx = startX + i * (r * 2 + gap);
+      ctx.beginPath();
+      ctx.arc(cx, y, r, 0, Math.PI * 2);
+      if (i < rarity) {
+        ctx.fillStyle = '#c1443a';
+        ctx.fill();
+        if (CS.emojiReady('🐾')) {
+          var s = r * 1.15;
+          ctx.drawImage(CS.getEmojiImage('🐾'), cx - s / 2, y - s / 2, s, s);
+        }
+      } else {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#c9b691';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
+  function docRow(x, w, y, label, value) {
+    ctx.font = '600 15px "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#8a6f4b';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(label, x, y);
+    var labelW = ctx.measureText(label).width;
+
+    ctx.font = '700 17px "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#4a3f35';
+    var valueW = ctx.measureText(value).width;
+    var maxValueW = w - labelW - 20;
+    if (valueW > maxValueW) {
+      // 값이 너무 길면 줄임표로 잘라서 다른 줄이랑 겹치지 않게 한다
+      while (value.length > 1 && ctx.measureText(value + '…').width > maxValueW) {
+        value = value.slice(0, -1);
+      }
+      value += '…';
+      valueW = ctx.measureText(value).width;
+    }
+    ctx.fillText(value, x + w - valueW, y);
+
+    var dotsStart = x + labelW + 8;
+    var dotsEnd = x + w - valueW - 8;
+    if (dotsEnd > dotsStart) {
+      ctx.strokeStyle = '#c9b691';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath();
+      ctx.moveTo(dotsStart, y - 3);
+      ctx.lineTo(dotsEnd, y - 3);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function drawCard() {
+    ctx.clearRect(0, 0, W, H);
+
+    // 크라프트지 느낌 배경 + 이중 테두리
+    ctx.fillStyle = '#f3e7d3';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#d9c7a8';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(14, 14, W - 28, H - 28);
+    ctx.setLineDash([2, 5]);
+    ctx.strokeStyle = '#c9b691';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(28, 28, W - 56, H - 56);
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#8a6f4b';
+    ctx.font = '600 15px "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('D A S A N - D O N G   W A L K   P A S S P O R T', W / 2, 50);
+
+    drawPhoto();
+
+    // 사진이 커진 만큼, 정보 줄은 사진 옆이 아니라 아래에 카드 폭 전체를 써서 배치한다
+    var infoX = 60, infoW = W - 120;
+    var rows = [
+      ['이름', val('pet-name')],
+      ['칭호', val('level')],
+      ['속성', val('type-tag')],
+      ['오늘 산책', val('dist-today') + ' km'],
+      ['누적 산책', val('dist-total') + ' km'],
+      ['컨디션', val('hp') + ' / 100']
+    ];
+    // 잉크 도장이 사진 모서리 밖으로도 튀어나오는 크기라, 도장 아래쪽 여유까지 감안해서 띄운다
+    var ry = PHOTO_Y + PHOTO_H + 80;
+    rows.forEach(function (row) {
+      docRow(infoX, infoW, ry, row[0], row[1]);
+      ry += 38;
+    });
+
+    var condY = ry + 26;
+    ctx.strokeStyle = '#d9c7a8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(60, condY - 20);
+    ctx.lineTo(W - 60, condY - 20);
+    ctx.stroke();
+
+    ctx.fillStyle = '#8a6f4b';
+    ctx.font = '600 14px "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('발급 조건', 60, condY);
+    ctx.fillStyle = '#4a3f35';
+    ctx.font = '15px "Malgun Gothic", sans-serif';
+    ctx.fillText('· 특성: ' + val('passive-title'), 60, condY + 30);
+    CS.drawEmojiLine(ctx, {
+      emoji: '📍', text: val('badge'), x: 60, y: condY + 48,
+      font: '600 15px "Malgun Gothic", sans-serif', color: '#4a3f35', size: 16, align: 'left'
+    });
+
+    // 도장 현황 (실제 매장별 방문 인증이 아니라, 지금 있는 등급값으로 채워지는 정도만 흉내낸
+    // 장식 섹션 — 진짜 스탬프 시스템은 미정 사항이라 라벨에 분명히 표시해둠)
+    var stampLabelY = condY + 86;
+    ctx.fillStyle = '#8a6f4b';
+    ctx.font = '600 14px "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('도 장  현 황 (등급 기준 예시)', W / 2, stampLabelY);
+    drawStampRow(stampLabelY + 44);
+
+    ctx.fillStyle = '#a89a86';
+    ctx.font = '13px "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('발급: 산책 다이어리', W - 60, H - 50);
+  }
+
+  // 이 시안은 정보량이 고정된 서류 레이아웃이라 다른 시안처럼 높이를 자동으로 맞추지 않고
+  // 고정 크기(680x900)로 둔다 — 대신 값이 너무 길면 docRow()에서 줄임표로 자른다.
+  function renderCard() { drawCard(); }
+
+  photoInput.addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var img = new Image();
+    img.onload = function () {
+      petImage = img;
+      photoOffset.x = 0;
+      photoOffset.y = 0;
+      photoZoom = 1;
+      canvas.style.cursor = 'grab';
+      renderCard();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  // getZoom/setZoom을 같이 넘겨서 스크롤(데스크톱)·핀치(모바일)로 확대·축소도 지원한다.
+  CS.attachPhotoDrag({
+    canvas: canvas,
+    hasImage: function () { return !!petImage; },
+    hitTest: function (x, y) {
+      return x >= PHOTO_X && x <= PHOTO_X + PHOTO_W && y >= PHOTO_Y && y <= PHOTO_Y + PHOTO_H;
+    },
+    getOffset: function () { return photoOffset; },
+    setOffset: function (x, y) {
+      photoOffset.x = x;
+      photoOffset.y = y;
+      clampPhotoOffset();
+    },
+    getZoom: function () { return photoZoom; },
+    setZoom: function (z) {
+      photoZoom = z;
+      clampPhotoOffset();
+    },
+    minZoom: PHOTO_MIN_ZOOM,
+    maxZoom: PHOTO_MAX_ZOOM,
+    onChange: renderCard
+  });
+
+  document.getElementById('card-form').addEventListener('input', renderCard);
+  document.getElementById('redraw-btn').addEventListener('click', renderCard);
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    CS.downloadCanvasPNG(canvas, (val('pet-name') || 'walk-card') + '_passport.png');
+  });
+
+  renderCard();
+})();
+</script>
+</body>
+</html>

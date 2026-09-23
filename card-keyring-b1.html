@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 카드 만들기 — 키링형 B-1 (라운드 사각형)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Do+Hyeon&family=Gaegu&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7ede2;
+    --accent: #f2b6a0;
+    --accent-dark: #d98a72;
+    --text: #4a3f35;
+    --panel: #fffaf3;
+    --line: #e5d9c8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { margin-bottom: 16px; }
+  header h1 { font-size: 18px; margin: 0 0 4px; }
+  header p { font-size: 12px; color: #8a7c6d; margin: 0; line-height: 1.5; }
+  header a { color: var(--accent-dark); }
+
+  .variant-nav { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .variant-nav a {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; text-decoration: none;
+    border: 1px solid var(--line); color: var(--text); background: var(--panel);
+  }
+  .variant-nav a.active { background: var(--accent-dark); color: white; border-color: var(--accent-dark); }
+
+  .note {
+    font-size: 12px; color: #8a7c6d; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 18px; line-height: 1.5;
+  }
+
+  .layout { display: flex; gap: 28px; align-items: flex-start; }
+  .preview-col { flex: 0 0 360px; position: sticky; top: 20px; }
+  .edit-col { flex: 1; min-width: 280px; }
+  @media (max-width: 760px) {
+    .layout { flex-direction: column; }
+    .preview-col { position: static; flex: none; width: 100%; }
+  }
+
+  .canvas-holder {
+    display: flex; justify-content: center; margin-bottom: 18px;
+  }
+  #card-canvas {
+    width: 100%; max-width: 340px; touch-action: none;
+    /* 사진이 프레임 위로 튀어나오는 시안이라 캔버스 자체엔 그림자/배경을 주지 않는다 (카드 프레임에만 효과) */
+  }
+  .canvas-hint {
+    text-align: center; font-size: 11px; color: #a8977f; margin-top: 8px;
+  }
+
+  form { display: flex; flex-direction: column; gap: 12px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: #8a7c6d; }
+  .field input, .field select, .field textarea {
+    padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px;
+    background: white; color: var(--text); font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 54px; line-height: 1.4; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn { flex: 1; border: none; border-radius: 999px; padding: 13px; font-size: 14px;
+    font-weight: 600; cursor: pointer; }
+  .btn-primary { background: var(--accent-dark); color: white; }
+  .btn-secondary { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+
+  .back-link { display: inline-block; margin-bottom: 12px; font-size: 13px; color: var(--accent-dark);
+    text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back-link" href="index.html">&larr; 산책 다이어리로 돌아가기</a>
+
+  <div class="variant-nav">
+    <a href="card.html">시안 A · 기본형 (전체 스탯)</a>
+    <a href="card-keyring.html">시안 B · 키링형 (실물 출력용)</a>
+    <a href="card-keyring-b1.html" class="active">시안 B-1 · 라운드 사각형</a>
+    <a href="card-story.html">시안 C · 스토리 공유형</a>
+    <a href="card-stamp.html">시안 D · 여권/스탬프형</a>
+  </div>
+
+  <header>
+    <h1>▭ 산책 카드 — 키링형 B-1 (라운드 사각형)</h1>
+    <p>시안 B(키링형)에서 원형이던 "윈도우 컷" 사진 프레임을 모서리만 살짝 둥근 사각형으로
+    바꾼 파생 시안입니다. 시안 B와 달리 사진이 프레임 밖으로 튀어나오지 않고 완전히 안쪽에
+    들어가며, 위/좌/우 여백이 서로 같습니다. 나머지 레이아웃(이름·스킬·특성·칭호 위치, 프레임
+    디자인)은 시안 B와 동일합니다. 자세한 내용은
+    <a href="PROJECT_CONTEXT.md">PROJECT_CONTEXT.md</a> 참고.</p>
+  </header>
+
+  <div class="note">
+    사진은 브라우저 안에서만 처리되며 어디로도 전송되지 않습니다. "카드 이미지 저장"을 누르면
+    이 기기에 PNG로 다운로드됩니다.
+  </div>
+
+  <div class="layout">
+  <div class="preview-col">
+  <div class="canvas-holder">
+    <canvas id="card-canvas" width="680" height="1000"></canvas>
+  </div>
+  <div class="canvas-hint">사진 부분을 드래그하면 위치를, 스크롤(모바일은 두 손가락 핀치)로
+  확대·축소를 조절할 수 있어요</div>
+  </div>
+
+  <div class="edit-col">
+  <form id="card-form">
+    <div class="field">
+      <label for="photo">반려동물 사진</label>
+      <input type="file" id="photo" accept="image/*" capture="environment">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="pet-name">이름</label>
+        <input type="text" id="pet-name" value="뽀삐" maxlength="12">
+      </div>
+      <div class="field">
+        <label for="level">레벨 / 칭호</label>
+        <input type="text" id="level" value="Lv.3 다산 탐험가" maxlength="20">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="type-tag">속성 태그</label>
+        <input type="text" id="type-tag" value="공원산책형" maxlength="10">
+      </div>
+      <div class="field">
+        <label for="filter">사진 감성 필터</label>
+        <select id="filter">
+          <option value="pastel">파스텔</option>
+          <option value="holo">홀로그램톤</option>
+          <option value="vivid">비비드</option>
+          <option value="cartoon">카툰 (윤곽선+색상 단순화)</option>
+          <option value="none">필터 없음</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="skill1-select">주력 스킬 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="skill1-select"></select>
+    </div>
+    <div class="field">
+      <label for="skill1-title">스킬 제목 (괄호 안에 드립 스탯)</label>
+      <input type="text" id="skill1-title" maxlength="40">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="skill-title-font">스킬 제목 폰트</label>
+        <select id="skill-title-font"></select>
+      </div>
+      <div class="field">
+        <label for="skill-title-color">스킬 제목 색상</label>
+        <select id="skill-title-color"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="skill-title-size">스킬 제목 크기</label>
+      <select id="skill-title-size"></select>
+    </div>
+    <div class="field">
+      <label for="skill1-desc">스킬 설명 (Enter로 줄바꿈 가능)</label>
+      <textarea id="skill1-desc" maxlength="90" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label for="passive-select">B급 특성 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="passive-select"></select>
+    </div>
+    <div class="field">
+      <label for="passive-title">특성 제목</label>
+      <input type="text" id="passive-title" maxlength="30">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="passive-title-color">특성 제목 색상</label>
+        <select id="passive-title-color"></select>
+      </div>
+      <div class="field">
+        <label for="passive-title-size">특성 제목 크기</label>
+        <select id="passive-title-size"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="passive-desc">특성 설명 (Enter로 줄바꿈 가능)</label>
+      <textarea id="passive-desc" maxlength="120" rows="2"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="badge-select">획득 칭호 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="badge-select"></select>
+    </div>
+    <div class="field">
+      <label for="badge">획득 칭호</label>
+      <input type="text" id="badge" maxlength="50">
+    </div>
+  </form>
+
+  <div class="actions">
+    <button class="btn btn-secondary" id="redraw-btn" type="button">미리보기 갱신</button>
+    <button class="btn btn-primary" id="save-btn" type="button">카드 이미지 저장</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
+<script src="card-shared.js?v=9"></script>
+<script>
+(function () {
+  var CS = window.CardShared;
+  var canvas = document.getElementById('card-canvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+
+  var photoInput = document.getElementById('photo');
+  var petImage = null;
+
+  // 처음엔 시안 B처럼 사진이 프레임 위로 튀어나오는 "윈도우 컷" 팝업이었는데, 사용자가
+  // "사진 영역이 테두리 안으로 들어가게, 윗여백이 좌우 여백과 어울리게 높이를 조절해달라"고
+  // 요청(2026-08-27) — 이제 사진은 프레임 밖으로 튀어나오지 않고 완전히 안쪽에 들어간다.
+  // 프레임도 더 이상 팝업을 위한 위쪽 여백(FRAME_TOP=90)을 따로 둘 필요가 없어져서, 좌우
+  // 여백(14)과 똑같이 캔버스 위쪽에 바로 붙였다. 사진은 그 프레임 안에서 상/좌/우 여백을
+  // PHOTO_PAD로 통일하고(요청한 "윗여백이 좌우 여백에 어울리게"), 남는 세로 공간만큼
+  // 높이가 정해지는 정사각형에 가깝게 잡았다.
+  var PHOTO_PAD = 40; // 사진과 프레임 사이 여백 — 위/왼쪽/오른쪽 전부 동일
+  var PHOTO_R = 20; // 모서리를 아주 둥글게 하지 않고 "살짝"만 라운드
+  var PHOTO_CX = W / 2;
+  var FRAME_TOP = 14; // 팝업이 없어졌으므로 좌우 여백(14)과 동일하게 맞춤
+  var PHOTO_W = (W - 28) - PHOTO_PAD * 2; // 프레임 안쪽 폭에서 좌우 여백을 뺀 값
+  var PHOTO_H = PHOTO_W; // 여백이 사방(위/좌/우) 동일하니 정사각형으로 — 자연스럽게 균형 잡힘
+  var PHOTO_TOP = FRAME_TOP + PHOTO_PAD; // 프레임 안쪽에서 시작 (더 이상 프레임 위로 안 튀어나옴)
+  var PHOTO_RECT = { x: PHOTO_CX - PHOTO_W / 2, y: PHOTO_TOP, w: PHOTO_W, h: PHOTO_H };
+  var photoOffset = { x: 0, y: 0 };
+  var photoZoom = 1;
+  var PHOTO_MIN_ZOOM = 1, PHOTO_MAX_ZOOM = 3;
+
+  function clampPhotoOffset() {
+    if (!petImage) return;
+    CS.clampOffset(photoOffset, CS.computePhotoFit(PHOTO_RECT, petImage, photoZoom));
+  }
+
+  var cartoonCache = { source: null, canvas: null };
+  function getPhotoDrawSource() {
+    if (val('filter') !== 'cartoon') return petImage;
+    if (cartoonCache.source !== petImage) {
+      cartoonCache.canvas = CS.applyCartoonEffect(petImage);
+      cartoonCache.source = petImage;
+    }
+    return cartoonCache.canvas;
+  }
+
+  var FILTER_MAP = CS.FILTER_MAP;
+
+  CS.buildCatalogSelect(document.getElementById('skill1-select'), CS.SKILLS,
+    document.getElementById('skill1-title'), document.getElementById('skill1-desc'), 1);
+  CS.buildCatalogSelect(document.getElementById('passive-select'), CS.PASSIVES,
+    document.getElementById('passive-title'), document.getElementById('passive-desc'), 0);
+  CS.buildSimpleCatalogSelect(document.getElementById('badge-select'), CS.BADGES,
+    document.getElementById('badge'), 0);
+
+  CS.preloadEmoji(['🐾', '⚡', '🌙', '🏅'], function () { renderCard(); });
+
+  // 시안 B와 동일한 스킬/특성 제목 폰트·색·크기 콤보박스 — 로직 그대로 재사용
+  var SKILL_TITLE_FONTS = [
+    { label: '맑은 고딕 (기본)', family: '"Malgun Gothic", sans-serif' },
+    { label: 'Black Han Sans (두꺼운 임팩트체)', family: '"Black Han Sans", sans-serif' },
+    { label: '주아체 (동글동글 귀여운)', family: '"Jua", sans-serif' },
+    { label: '도현체 (굵고 대담한)', family: '"Do Hyeon", sans-serif' },
+    { label: '개구체 (손글씨 느낌)', family: '"Gaegu", sans-serif' }
+  ];
+  var TITLE_COLORS = [
+    { label: '코랄', value: '#b8542f' },
+    { label: '골드', value: '#b8860b' },
+    { label: '진브라운', value: '#4a3f35' },
+    { label: '퍼플', value: '#5f4d85' },
+    { label: '포레스트그린', value: '#3d6b4a' },
+    { label: '네이비', value: '#2d4a6b' },
+    { label: '버건디', value: '#8b2e3f' },
+    { label: '틸', value: '#1f7a6c' },
+    { label: '올리브', value: '#6b6b23' },
+    { label: '슬레이트', value: '#4a5568' },
+    { label: '로즈', value: '#c2185b' },
+    { label: '다크레드', value: '#a3312f' },
+    { label: '인디고', value: '#3730a3' },
+    { label: '초콜릿', value: '#7b4b2a' },
+    { label: '페트롤블루', value: '#0f5c6b' },
+    { label: '다크그레이', value: '#33302b' }
+  ];
+  var TITLE_FONT_SIZES = [
+    { label: '18px (작게)', px: 18 },
+    { label: '20px', px: 20 },
+    { label: '23px (기본)', px: 23 },
+    { label: '26px', px: 26 },
+    { label: '30px (크게)', px: 30 },
+    { label: '34px (아주 크게)', px: 34 }
+  ];
+  var TITLE_SIZE_DEFAULT_INDEX = 2;
+  var PASSIVE_COLOR_DEFAULT_INDEX = 3;
+
+  function fillSelect(select, items, defaultIndex) {
+    items.forEach(function (item, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = item.label;
+      if (i === defaultIndex) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+  fillSelect(document.getElementById('skill-title-font'), SKILL_TITLE_FONTS, 0);
+  fillSelect(document.getElementById('skill-title-color'), TITLE_COLORS, 0);
+  fillSelect(document.getElementById('skill-title-size'), TITLE_FONT_SIZES, TITLE_SIZE_DEFAULT_INDEX);
+  fillSelect(document.getElementById('passive-title-color'), TITLE_COLORS, PASSIVE_COLOR_DEFAULT_INDEX);
+  fillSelect(document.getElementById('passive-title-size'), TITLE_FONT_SIZES, TITLE_SIZE_DEFAULT_INDEX);
+
+  if (document.fonts && document.fonts.load) {
+    Promise.all(SKILL_TITLE_FONTS.map(function (f) {
+      return document.fonts.load('23px ' + f.family).catch(function () {});
+    })).then(renderCard);
+  }
+
+  function val(id) { return document.getElementById(id).value; }
+  function roundRect(x, y, w, h, r) { CS.roundRect(ctx, x, y, w, h, r); }
+
+  function drawBackgroundPattern(x, y, w, h) {
+    if (!CS.emojiReady('🐾')) return;
+    var img = CS.getEmojiImage('🐾');
+    var step = 74, size = 26;
+    ctx.save();
+    roundRect(x, y, w, h, 32);
+    ctx.clip();
+    ctx.globalAlpha = 0.07;
+    var row = 0;
+    for (var py = y - step; py < y + h + step; py += step) {
+      var rowOffset = (row % 2) ? step / 2 : 0;
+      for (var px = x - step; px < x + w + step; px += step) {
+        ctx.save();
+        ctx.translate(px + rowOffset, py);
+        ctx.rotate(((px + py) % 7) * 0.09);
+        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+        ctx.restore();
+      }
+      row++;
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawFrame() {
+    var x = 14, y = FRAME_TOP, w = W - 28, h = H - 14 - FRAME_TOP;
+
+    var grad = ctx.createLinearGradient(0, y, 0, y + h);
+    grad.addColorStop(0, '#fdf1e3');
+    grad.addColorStop(1, '#f6dfd2');
+    ctx.fillStyle = grad;
+    roundRect(x, y, w, h, 32);
+    ctx.fill();
+
+    drawBackgroundPattern(x, y, w, h);
+
+    var goldGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+    goldGrad.addColorStop(0, '#c99a3a');
+    goldGrad.addColorStop(0.32, '#f0cf7a');
+    goldGrad.addColorStop(0.5, '#fff6d9');
+    goldGrad.addColorStop(0.68, '#f0cf7a');
+    goldGrad.addColorStop(1, '#c99a3a');
+    ctx.lineWidth = 16;
+    ctx.strokeStyle = goldGrad;
+    roundRect(x, y, w, h, 32);
+    ctx.stroke();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fffaf3';
+    roundRect(x + 12, y + 12, w - 24, h - 24, 24);
+    ctx.stroke();
+
+    var corners = [
+      [x + 30, y + 30], [x + w - 30, y + 30],
+      [x + 30, y + h - 30], [x + w - 30, y + h - 30]
+    ];
+    corners.forEach(function (c) {
+      ctx.beginPath();
+      ctx.arc(c[0], c[1], 20, 0, Math.PI * 2);
+      ctx.fillStyle = '#fffaf3';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = goldGrad;
+      ctx.stroke();
+      if (CS.emojiReady('🐾')) {
+        var pawSize = 20;
+        ctx.drawImage(CS.getEmojiImage('🐾'), c[0] - pawSize / 2, c[1] - pawSize / 2, pawSize, pawSize);
+      }
+    });
+
+    return { bodyTop: y, bodyLeft: x, bodyRight: x + w };
+  }
+
+  function drawPhoto() {
+    var x = PHOTO_RECT.x, y = PHOTO_RECT.y, w = PHOTO_RECT.w, h = PHOTO_RECT.h;
+
+    // 원형일 때와 마찬가지로, 사각형이 카드 위에 떠 있는 것처럼 보이도록 그림자를 먼저 깐다.
+    ctx.save();
+    ctx.shadowColor = 'rgba(74, 63, 53, 0.35)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = '#000';
+    roundRect(x, y, w, h, PHOTO_R);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    roundRect(x, y, w, h, PHOTO_R);
+    ctx.clip();
+    ctx.fillStyle = '#e9dccb';
+    ctx.fillRect(x, y, w, h);
+    if (petImage) {
+      var filterKey = val('filter');
+      var drawSource = getPhotoDrawSource();
+      ctx.filter = filterKey === 'cartoon' ? 'none' : (FILTER_MAP[filterKey] || 'none');
+      var fit = CS.computePhotoFit(PHOTO_RECT, drawSource, photoZoom);
+      var dx = x + (w - fit.dw) / 2 + photoOffset.x;
+      var dy = y + (h - fit.dh) / 2 + photoOffset.y;
+      ctx.imageSmoothingEnabled = filterKey !== 'cartoon';
+      ctx.drawImage(drawSource, dx, dy, fit.dw, fit.dh);
+      ctx.imageSmoothingEnabled = true;
+      ctx.filter = 'none';
+    } else {
+      ctx.fillStyle = '#a89a86';
+      ctx.font = '18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('사진을 선택해주세요', x + w / 2, y + h / 2);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+
+    // 아크릴 참(charm) 느낌의 이중 테두리 — 원형일 때의 이중 링을, 사각형에 맞춰 이중
+    // 라운드 사각형 스트로크로 바꿨다.
+    roundRect(x, y, w, h, PHOTO_R);
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#fffaf3';
+    ctx.stroke();
+    roundRect(x + 6, y + 6, w - 12, h - 12, Math.max(0, PHOTO_R - 6));
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#e2b45a';
+    ctx.stroke();
+  }
+
+  function drawCard() {
+    ctx.clearRect(0, 0, W, H);
+    drawFrame();
+    drawPhoto();
+
+    var photoBottom = PHOTO_TOP + PHOTO_H;
+
+    var nameY = photoBottom + 22;
+    CS.drawEmojiLine(ctx, {
+      emoji: '🐾', text: val('pet-name'), x: W / 2, y: nameY,
+      font: '30px "Black Han Sans", sans-serif', color: '#4a3f35', size: 26, align: 'center'
+    });
+
+    var metaY = nameY + 38;
+    ctx.font = '600 16px "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#d98a72';
+    ctx.textAlign = 'center';
+    ctx.fillText(val('level') + '  ·  ' + val('type-tag'), W / 2, metaY);
+    ctx.textAlign = 'left';
+
+    var lineY = metaY + 34;
+    ctx.strokeStyle = '#d9c7b3';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(44, lineY);
+    ctx.lineTo(W - 44, lineY);
+    ctx.stroke();
+
+    var descFontB = '18px "Malgun Gothic", sans-serif';
+    var chipGap = 16;
+    var y = lineY + 22;
+    var skillFontChoice = SKILL_TITLE_FONTS[parseInt(val('skill-title-font'), 10) || 0];
+    var skillColorChoice = TITLE_COLORS[parseInt(val('skill-title-color'), 10) || 0];
+    var skillSizeChoice = TITLE_FONT_SIZES[parseInt(val('skill-title-size'), 10)] || TITLE_FONT_SIZES[TITLE_SIZE_DEFAULT_INDEX];
+    var passiveColorChoice = TITLE_COLORS[parseInt(val('passive-title-color'), 10)] || TITLE_COLORS[PASSIVE_COLOR_DEFAULT_INDEX];
+    var passiveSizeChoice = TITLE_FONT_SIZES[parseInt(val('passive-title-size'), 10)] || TITLE_FONT_SIZES[TITLE_SIZE_DEFAULT_INDEX];
+    y = CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88, titleEmoji: '⚡', titleText: val('skill1-title'), desc: val('skill1-desc'), titleColor: skillColorChoice.value, dashed: false, titleAlign: 'left', titleFont: skillSizeChoice.px + 'px ' + skillFontChoice.family, titleLH: skillSizeChoice.px + 5, descFont: descFontB });
+    y += chipGap;
+    y = CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88, titleEmoji: '🌙', titleText: val('passive-title'), desc: val('passive-desc'), titleColor: passiveColorChoice.value, dashed: true, titleAlign: 'left', titleFont: passiveSizeChoice.px + 'px "Malgun Gothic", sans-serif', titleLH: passiveSizeChoice.px + 5, descFont: descFontB });
+    var chipsBottom = y;
+
+    CS.drawEmojiLine(ctx, {
+      emoji: '🏅', text: val('badge'), x: W / 2, y: chipsBottom + 20,
+      font: '18px "Malgun Gothic", sans-serif', color: '#4a3f35', size: 18, align: 'center'
+    });
+
+    return chipsBottom + 20 + 28;
+  }
+
+  function renderCard() {
+    var contentBottom = drawCard();
+    var neededH = Math.ceil(contentBottom) + 30;
+    if (neededH !== H) {
+      canvas.height = neededH;
+      H = neededH;
+      drawCard();
+    }
+  }
+
+  photoInput.addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var img = new Image();
+    img.onload = function () {
+      petImage = img;
+      photoOffset.x = 0;
+      photoOffset.y = 0;
+      photoZoom = 1;
+      canvas.style.cursor = 'grab';
+      renderCard();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  // 사진 드래그로 위치 조절 — 사각형 영역 안인지로 판정 (원형일 때의 거리 판정 대신)
+  CS.attachPhotoDrag({
+    canvas: canvas,
+    hasImage: function () { return !!petImage; },
+    hitTest: function (x, y) {
+      return x >= PHOTO_RECT.x && x <= PHOTO_RECT.x + PHOTO_RECT.w &&
+        y >= PHOTO_RECT.y && y <= PHOTO_RECT.y + PHOTO_RECT.h;
+    },
+    getOffset: function () { return photoOffset; },
+    setOffset: function (x, y) {
+      photoOffset.x = x;
+      photoOffset.y = y;
+      clampPhotoOffset();
+    },
+    getZoom: function () { return photoZoom; },
+    setZoom: function (z) {
+      photoZoom = z;
+      clampPhotoOffset();
+    },
+    minZoom: PHOTO_MIN_ZOOM,
+    maxZoom: PHOTO_MAX_ZOOM,
+    onChange: renderCard
+  });
+
+  document.getElementById('card-form').addEventListener('input', renderCard);
+  document.getElementById('redraw-btn').addEventListener('click', renderCard);
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    CS.downloadCanvasPNG(canvas, (val('pet-name') || 'walk-card') + '_keyring-b1.png');
+  });
+
+  renderCard();
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('30px "Black Han Sans"').catch(function () {}).then(renderCard);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 다이어리</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #f7ede2;
+    --accent: #f2b6a0;
+    --accent-dark: #d98a72;
+    --text: #4a3f35;
+    --panel: #fffaf3;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--text); background: var(--bg); }
+  #map { position: absolute; inset: 0; z-index: 0; }
+
+  /* 지도 컬러톤: 라벤더 파스텔 (map-color-test.html 5종 비교 중 선택, PROJECT_CONTEXT.md 참고).
+     다른 톤으로 바꾸려면 이 filter 값만 map-color-test.html의 TONES 값으로 교체하면 됨. */
+  .leaflet-tile-pane {
+    filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%);
+  }
+
+  .top-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(to bottom, rgba(247,237,226,0.9), rgba(247,237,226,0));
+    pointer-events: none;
+  }
+  .top-bar .title { font-weight: 700; font-size: 15px; pointer-events: auto; }
+  .top-bar .status { font-size: 12px; color: #8a7c6d; pointer-events: auto; }
+
+  .bottom-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+    padding: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    background: linear-gradient(to top, rgba(247,237,226,0.95), rgba(247,237,226,0));
+  }
+  .btn {
+    border: none; border-radius: 999px; padding: 14px 20px; font-size: 14px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent-dark); color: white; }
+  .btn-secondary { background: var(--panel); color: var(--text); border: 1px solid #e5d9c8; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .pin-marker {
+    width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    background: var(--accent-dark); border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+
+  /* 추천 루트 시작점 깃발 마커 (div 아이콘이라 이모지를 그대로 텍스트로 그림) */
+  .route-flag {
+    font-size: 22px; line-height: 24px; text-align: center;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+  }
+  .leaflet-popup-content { font-size: 13px; line-height: 1.5; }
+
+  /* 추천 루트를 켰을 때만 나타나는 견종 크기 선택 패널 (하단바 바로 위) */
+  .route-panel {
+    position: absolute; bottom: 78px; left: 16px; right: 16px; z-index: 10;
+    background: var(--panel); border: 1px solid #e5d9c8; border-radius: 14px;
+    padding: 10px 14px; display: none; align-items: center; gap: 10px;
+    font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .route-panel label { white-space: nowrap; font-weight: 600; }
+  .route-panel select {
+    flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px;
+    border: 1px solid #e5d9c8; font-size: 13px; background: white; color: var(--text);
+  }
+
+  /* 확대/축소 컨트롤을 우측 상단에 놓되, top-bar(제목/상태/카드 링크)와 겹치지 않도록
+     기본 위치(상단에서 10px)보다 더 아래로 내림 — top-bar 높이가 대략 54px 정도라 그만큼 띄움. */
+  .leaflet-top.leaflet-right { margin-top: 54px; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="top-bar">
+  <div class="title">🐾 산책 다이어리</div>
+  <div class="status" id="status-text">대기 중</div>
+  <a href="card-story.html" style="pointer-events:auto; text-decoration:none; font-size:12px; color:#d98a72; font-weight:600;">🎴 카드</a>
+</div>
+
+<div class="route-panel" id="route-panel">
+  <label for="dog-size-select">🐕 우리 아이 크기</label>
+  <select id="dog-size-select"></select>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn btn-secondary" id="route-btn">🌿 추천 루트</button>
+  <button class="btn btn-secondary" id="pin-btn" disabled>📍 핀 꽂기</button>
+  <button class="btn btn-primary" id="walk-btn">산책 시작</button>
+  <a class="btn btn-primary" id="card-link-btn" href="card-story.html"
+     style="display:none; text-decoration:none;">🎴 카드 만들기</a>
+</div>
+
+<script>
+(function () {
+  var walkBtn = document.getElementById('walk-btn');
+  var pinBtn = document.getElementById('pin-btn');
+  var routeBtn = document.getElementById('route-btn');
+  var routePanel = document.getElementById('route-panel');
+  var dogSizeSelect = document.getElementById('dog-size-select');
+  var cardLinkBtn = document.getElementById('card-link-btn');
+  var statusText = document.getElementById('status-text');
+
+  var map, watchId = null, walking = false, walkStartTime = null;
+  var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
+  var routeLine;
+
+  // 산책 루트 추천 (2026-09-07 추가): 다른 유저 데이터 기반 추천은 회원/백엔드가 필요해서
+  // "서비스 다이어트"로 보류된 B 영역에 해당함(PROJECT_CONTEXT.md 참고) — 대신 다산동 공원
+  // 몇 곳을 큐레이션한 루트를 지도에 얹는 방식으로 프로토타입에서도 바로 검증 가능하게 함.
+  // ⚠️ waypoints는 지도 중심(37.5985, 127.1467) 주변의 예시값이고, 실제 다산 중앙공원/수변공원
+  // 좌표는 아직 확인 전이라 추후 보정이 필요하다(index.html 상단 initMap 주석과 동일한 상황).
+  // 세 루트는 일부러 짧음/중간/김 순으로 거리 차이를 뚜렷하게 둠 — 전부 비슷하게 짧으면
+  // 아래 견종 크기별 "다소 길 수 있는 코스" 경고가 실제로 갈릴 일이 없어서 기능 확인이 안 됨.
+  //
+  // waypoints는 "여기를 순서대로 지나가는 실제 도로 경로를 그려줘"라고 라우팅 엔진에 넘기는
+  // 경유점일 뿐, 화면에 그리는 선 자체가 아니다 — 실제 그려지는 좌표(geometry)는 아래
+  // fetchRoadRoute()가 OSRM에서 받아와 채운다(영역/직선이 아니라 진짜 도로를 따라가게 하기 위함).
+  var RECOMMENDED_ROUTES = [
+    {
+      name: '아울렛 둘레길',
+      desc: '짧게 한 바퀴, 시간 없을 때 추천',
+      waypoints: [
+        [37.5985, 127.1467], [37.5988, 127.1463], [37.5991, 127.1467],
+        [37.5988, 127.1471], [37.5985, 127.1467]
+      ]
+    },
+    {
+      name: '다산 중앙공원 한 바퀴',
+      desc: '공원을 크게 도는 평탄한 코스',
+      waypoints: [
+        [37.5993, 127.1466], [37.6022, 127.1466], [37.6022, 127.1503],
+        [37.5993, 127.1503], [37.5993, 127.1466]
+      ]
+    },
+    {
+      name: '수변공원 산책로',
+      desc: '물길을 따라 걷는 여유로운 장거리 코스',
+      waypoints: [
+        [37.5965, 127.1490], [37.6014, 127.1490], [37.6014, 127.1552],
+        [37.5965, 127.1552], [37.5965, 127.1490]
+      ]
+    }
+  ];
+  // 견종별 정확한 데이터베이스는 프로토타입 범위를 벗어나서(품종별 실측 보행 속도 자료가 없음),
+  // 대신 소/중/대형견 3단계 크기 프로필로 가볍게 근사한다 — 코스 소요 시간이 크기마다 달라지고,
+  // 권장 거리를 넘는 코스는 지도에서 색으로 바로 구분되게 한다(아래 buildRecommendedLayer 참고).
+  var DOG_SIZE_KEY = 'petwalk_dog_size';
+  var DOG_SIZE_PROFILES = {
+    small: { label: '소형견 (말티즈·포메라니안·치와와 등)', speedKmh: 2.5, maxRecommendedKm: 1.0 },
+    medium: { label: '중형견 (비글·시바견·웰시코기 등)', speedKmh: 3.5, maxRecommendedKm: 2.0 },
+    large: { label: '대형견 (리트리버·진돗개·허스키 등)', speedKmh: 4.5, maxRecommendedKm: 4.0 }
+  };
+  var dogSize = 'medium';
+  try {
+    var savedDogSize = localStorage.getItem(DOG_SIZE_KEY);
+    if (savedDogSize && DOG_SIZE_PROFILES[savedDogSize]) dogSize = savedDogSize;
+  } catch (e) { /* 스토리지 접근 불가 환경 — 기본값(중형견)으로 계속 진행 */ }
+
+  var recommendedLayer = null;
+  var recommendedVisible = false;
+
+  // 산책 보상 개념 자체를 없애기로 한 결정(2026-09-02, PROJECT_CONTEXT.md "최종 결정: 보상
+  // 개념 자체를 폐기" 참고)에 따라, 아래 기록은 달성/실패를 판정하지 않는 순수 정보성 통계다.
+  // 스트릭이 끊겨도 페널티 문구 없이 그냥 조용히 0으로 보여준다.
+  var WALKS_KEY = 'petwalk_walks';
+  var LAST_WALK_KEY = 'petwalk_last_walk';
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+
+  function loadWalks() {
+    try { return JSON.parse(localStorage.getItem(WALKS_KEY)) || []; } catch (e) { return []; }
+  }
+
+  function computeStreakDays(walks) {
+    var days = {};
+    walks.forEach(function (w) { days[w.date] = true; });
+    var streak = 0;
+    var d = new Date();
+    while (days[dateKey(d)]) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  }
+
+  function walksThisMonthCount(walks) {
+    var ym = dateKey(new Date()).slice(0, 7);
+    return walks.filter(function (w) { return w.date.slice(0, 7) === ym; }).length;
+  }
+
+  function showIdleStats() {
+    var walks = loadWalks();
+    if (!walks.length) return;
+    statusText.textContent = '이번 달 ' + walksThisMonthCount(walks) + '번 산책 · 연속 ' + computeStreakDays(walks) + '일째';
+    if (localStorage.getItem(LAST_WALK_KEY)) cardLinkBtn.style.display = 'flex';
+  }
+
+  // 두 GPS 좌표([lat, lng]) 사이 거리(km) — 하버사인 공식
+  function haversineKm(a, b) {
+    var R = 6371;
+    var toRad = function (deg) { return deg * Math.PI / 180; };
+    var dLat = toRad(b[0] - a[0]);
+    var dLng = toRad(b[1] - a[1]);
+    var lat1 = toRad(a[0]), lat2 = toRad(b[0]);
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  }
+
+  function computeRouteDistanceKm(coords) {
+    var total = 0;
+    for (var i = 1; i < coords.length; i++) total += haversineKm(coords[i - 1], coords[i]);
+    return total;
+  }
+
+  // Chaikin 코너 커팅(각 변의 25%/75% 지점에 점을 찍어 꼭짓점을 대체 → 반복할수록 둥글게 깎임).
+  // 아래 fetchRoadRoute()가 실패했을 때만 쓰는 대체용 — 실제 도로 경로를 못 받아오면 최소한
+  // 직각으로 꺾이는 사각형 대신 둥근 근사 경로라도 보여준다.
+  function chaikinSmooth(points, iterations) {
+    var pts = points;
+    for (var iter = 0; iter < iterations; iter++) {
+      var next = [];
+      for (var i = 0; i < pts.length - 1; i++) {
+        var p0 = pts[i], p1 = pts[i + 1];
+        next.push([p0[0] * 0.75 + p1[0] * 0.25, p0[1] * 0.75 + p1[1] * 0.25]);
+        next.push([p0[0] * 0.25 + p1[0] * 0.75, p0[1] * 0.25 + p1[1] * 0.75]);
+      }
+      next.push(next[0]); // 루프 닫힘 유지
+      pts = next;
+    }
+    return pts;
+  }
+
+  // waypoints를 실제 도로 네트워크를 따라 잇는 경로로 바꿔주는 라우팅 엔진 호출.
+  // 가입/키 없이 쓸 수 있는 OSRM 공개 데모 서버(router.project-osrm.org)를 사용함 — 다만
+  // 이름 그대로 "데모"용 공개 서버라 실제 서비스로 트래픽이 늘면(공개 OSM 타일 서버와 같은
+  // 이유, PROJECT_CONTEXT.md "지도 API 변경" 참고) 자체 호스팅 OSRM이나 유료 라우팅 API로
+  // 옮겨야 한다. 실패(네트워크 오류/응답 이상/타임아웃)하면 null을 돌려주고, 호출부에서
+  // chaikinSmooth로 대체한다.
+  function fetchRoadRoute(waypoints) {
+    var coordStr = waypoints.map(function (p) { return p[1] + ',' + p[0]; }).join(';'); // OSRM은 lng,lat 순서
+    var url = 'https://router.project-osrm.org/route/v1/foot/' + coordStr + '?overview=full&geometries=geojson';
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function () { controller.abort(); }, 6000);
+    return fetch(url, { signal: controller.signal })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.code !== 'Ok' || !data.routes || !data.routes[0]) throw new Error('OSRM 응답 이상: ' + data.code);
+        return data.routes[0].geometry.coordinates.map(function (c) { return [c[1], c[0]]; }); // [lng,lat] → [lat,lng]
+      })
+      .catch(function (err) {
+        console.warn('실제 도로 경로를 불러오지 못해 대략적인 경로로 대체합니다:', err);
+        return null;
+      })
+      .finally(function () { clearTimeout(timeoutId); });
+  }
+
+  // 도로 경로(geometry)는 한 번 받아오면 route 객체에 캐시해서, 견종 크기를 바꿔 다시 그릴 때
+  // 매번 다시 요청하지 않게 한다(거리/시간 재계산만 필요하고 경로 모양은 안 바뀌므로).
+  function getRouteGeometry(route) {
+    if (route.geometry) return Promise.resolve(route.geometry);
+    return fetchRoadRoute(route.waypoints).then(function (geo) {
+      route.isFallback = !geo;
+      route.geometry = geo || chaikinSmooth(route.waypoints, 3);
+      return route.geometry;
+    });
+  }
+
+  // 선택된 견종 크기 기준으로 매번 새로 그린다 — 크기를 바꾸면 코스별 소요 시간과 "적합/무리"
+  // 색상이 즉시 다시 계산돼야 하므로, 캐시-무효화보다 매번 재계산이 더 단순함(경로 모양 자체는
+  // getRouteGeometry가 캐시하므로 이 부분은 네트워크 호출 없이 빠르게 끝남).
+  function buildRecommendedLayer() {
+    var profile = DOG_SIZE_PROFILES[dogSize];
+    var layer = L.layerGroup();
+    var tasks = RECOMMENDED_ROUTES.map(function (route) {
+      return getRouteGeometry(route).then(function (geometry) {
+        var distanceKm = computeRouteDistanceKm(geometry);
+        var minutes = Math.max(1, Math.round(distanceKm / profile.speedKmh * 60));
+        var tooLong = distanceKm > profile.maxRecommendedKm;
+
+        var line = L.polyline(geometry, {
+          color: tooLong ? '#d9a441' : '#6b9b6b', weight: 4, opacity: 0.8,
+          dashArray: route.isFallback ? '8 8' : null // 실제 도로 경로는 실선, 대체 경로만 점선으로 구분
+        });
+        var flagIcon = L.divIcon({ className: 'route-flag', html: '🌿', iconSize: [24, 24], iconAnchor: [12, 20] });
+        var marker = L.marker(geometry[0], { icon: flagIcon });
+        var warning = tooLong
+          ? '<br>⚠️ ' + profile.label.split(' (')[0] + '에게는 다소 길 수 있는 코스예요'
+          : '';
+        var fallbackNote = route.isFallback
+          ? '<br><small>(실제 도로 경로를 불러오지 못해 대략적으로 표시)</small>'
+          : '';
+        marker.bindPopup(
+          '<b>🌿 ' + route.name + '</b><br>' + route.desc + '<br>' +
+          distanceKm.toFixed(1) + 'km · 약 ' + minutes + '분' + warning + fallbackNote
+        );
+
+        line.addTo(layer);
+        marker.addTo(layer);
+      });
+    });
+    return Promise.all(tasks).then(function () { return layer; });
+  }
+
+  function toggleRecommendedRoutes() {
+    recommendedVisible = !recommendedVisible;
+    if (recommendedVisible) {
+      routeBtn.disabled = true;
+      routeBtn.textContent = '🌿 불러오는 중...';
+      buildRecommendedLayer().then(function (layer) {
+        recommendedLayer = layer;
+        routeBtn.disabled = false;
+        if (recommendedVisible) { // 로딩 중 사용자가 다시 꺼버렸을 수도 있음
+          recommendedLayer.addTo(map);
+          routeBtn.textContent = '🌿 추천 루트 숨기기';
+          routePanel.style.display = 'flex';
+        }
+      });
+    } else {
+      if (recommendedLayer) map.removeLayer(recommendedLayer);
+      recommendedLayer = null;
+      routeBtn.textContent = '🌿 추천 루트';
+      routePanel.style.display = 'none';
+    }
+  }
+
+  routeBtn.addEventListener('click', toggleRecommendedRoutes);
+
+  Object.keys(DOG_SIZE_PROFILES).forEach(function (key) {
+    var opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = DOG_SIZE_PROFILES[key].label;
+    if (key === dogSize) opt.selected = true;
+    dogSizeSelect.appendChild(opt);
+  });
+
+  dogSizeSelect.addEventListener('change', function () {
+    dogSize = dogSizeSelect.value;
+    try { localStorage.setItem(DOG_SIZE_KEY, dogSize); } catch (e) { /* 저장 실패해도 이번 세션 선택은 유지 */ }
+    if (recommendedVisible) {
+      // 경로 모양(geometry)은 route 객체에 캐시돼 있어 네트워크 호출 없이 바로 재계산만 하므로
+      // 빠르게 끝남 — 로딩 문구를 따로 띄우지 않아도 됨.
+      var oldLayer = recommendedLayer;
+      buildRecommendedLayer().then(function (layer) {
+        if (oldLayer) map.removeLayer(oldLayer);
+        recommendedLayer = layer;
+        if (recommendedVisible) recommendedLayer.addTo(map);
+      });
+    }
+  });
+
+  // 카드 화면(card-story.html)이 읽어가도록 이번 산책 기록을 저장하고, 총 누적 거리/스트릭을
+  // 계산해 돌려준다. GPS로 측정한 거리는 그대로 신뢰한다 — 치팅 방지용 필터는 넣지 않는다
+  // (보상이 없어서 지킬 이유가 없다는 결정, PROJECT_CONTEXT.md 참고).
+  function saveWalkRecord(distanceKm, durationMin) {
+    var walks = loadWalks();
+    walks.push({ date: dateKey(new Date()), distanceKm: distanceKm, durationMin: durationMin });
+    localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
+
+    var totalDistanceKm = walks.reduce(function (sum, w) { return sum + w.distanceKm; }, 0);
+    localStorage.setItem(LAST_WALK_KEY, JSON.stringify({
+      distanceKm: distanceKm, totalDistanceKm: totalDistanceKm, durationMin: durationMin
+    }));
+
+    return { totalDistanceKm: totalDistanceKm, streak: computeStreakDays(walks) };
+  }
+
+  initMap();
+  showIdleStats();
+
+  // Mapbox는 무료 티어도 카드 등록이 필요해 반감이 있어 배제 (2026-09-02 결정,
+  // PROJECT_CONTEXT.md "지도 API 변경" 참고) → 가입/토큰 없는 Leaflet + OpenStreetMap으로 대체.
+  function initMap() {
+    map = L.map('map', { zoomControl: false })
+      .setView([37.5985, 127.1467], 15); // 다산동 아웃렛 대략 좌표 (정확한 좌표는 추후 확인 필요)
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // 손가락 핀치/휠 줌 외에 명시적인 +/- 버튼도 요청받아 추가 — 기본 위치(topleft)는 제목과
+    // 겹쳐서 topright로 옮김(위 .leaflet-top.leaflet-right 여백 조정과 함께 봐야 함).
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    routeLine = L.polyline([], { color: '#d98a72', weight: 5, opacity: 0.85 }).addTo(map);
+  }
+
+  walkBtn.addEventListener('click', function () {
+    if (!walking) startWalk(); else stopWalk();
+  });
+
+  function startWalk() {
+    if (!navigator.geolocation) {
+      alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
+      return;
+    }
+    routeCoords = [];
+    routeLine.setLatLngs(routeCoords);
+    walking = true;
+    walkStartTime = Date.now();
+    walkBtn.textContent = '산책 종료';
+    pinBtn.disabled = false;
+    cardLinkBtn.style.display = 'none';
+    statusText.textContent = '산책 기록 중...';
+
+    watchId = navigator.geolocation.watchPosition(
+      function (pos) {
+        var coord = [pos.coords.latitude, pos.coords.longitude];
+        routeCoords.push(coord);
+        routeLine.setLatLngs(routeCoords);
+        map.panTo(coord, { animate: true, duration: 0.5 });
+      },
+      function (err) {
+        statusText.textContent = '위치 확인 실패: ' + err.message;
+      },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+    );
+  }
+
+  function stopWalk() {
+    walking = false;
+    walkBtn.textContent = '산책 시작';
+    pinBtn.disabled = true;
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+
+    if (routeCoords.length >= 2) {
+      var distanceKm = computeRouteDistanceKm(routeCoords);
+      var durationMin = Math.max(1, Math.round((Date.now() - walkStartTime) / 60000));
+      var result = saveWalkRecord(distanceKm, durationMin);
+      statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째';
+      cardLinkBtn.style.display = 'flex';
+    } else {
+      statusText.textContent = '산책 종료 (이동 기록 없음)';
+    }
+    // TODO: 경로 저장/공유는 백엔드 연동 전까지 로컬에만 유지 (PROJECT_CONTEXT.md 참고)
+  }
+
+  pinBtn.addEventListener('click', function () {
+    if (!walking || routeCoords.length === 0) return;
+    var last = routeCoords[routeCoords.length - 1];
+    var memo = prompt('이 지점에 남길 메모가 있나요? (선택)');
+    var icon = L.divIcon({ className: 'pin-marker', iconSize: [28, 28], iconAnchor: [14, 28] });
+    var marker = L.marker(last, { icon: icon }).addTo(map);
+    if (memo) marker.bindPopup(memo).openPopup();
+    // TODO: 핀 데이터도 현재는 지도 위 표시만 하고 영구 저장하지 않음
+  });
+})();
+</script>
+
+</body>
+</html>

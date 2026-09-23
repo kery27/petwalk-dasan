@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 카드 만들기 — 스토리 공유형</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7ede2;
+    --accent: #f2b6a0;
+    --accent-dark: #d98a72;
+    --text: #4a3f35;
+    --panel: #fffaf3;
+    --line: #e5d9c8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { margin-bottom: 16px; }
+  header h1 { font-size: 18px; margin: 0 0 4px; }
+  header p { font-size: 12px; color: #8a7c6d; margin: 0; line-height: 1.5; }
+  header a { color: var(--accent-dark); }
+
+  .variant-nav { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .variant-nav a {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; text-decoration: none;
+    border: 1px solid var(--line); color: var(--text); background: var(--panel);
+  }
+  .variant-nav a.active { background: var(--accent-dark); color: white; border-color: var(--accent-dark); }
+
+  .note {
+    font-size: 12px; color: #8a7c6d; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 18px; line-height: 1.5;
+  }
+
+  .layout { display: flex; gap: 28px; align-items: flex-start; }
+  .preview-col { flex: 0 0 300px; position: sticky; top: 20px; }
+  .edit-col { flex: 1; min-width: 280px; }
+  @media (max-width: 760px) {
+    .layout { flex-direction: column; }
+    .preview-col { position: static; flex: none; width: 100%; }
+  }
+
+  .canvas-holder { display: flex; justify-content: center; margin-bottom: 18px; }
+  #card-canvas {
+    width: 100%; max-width: 280px; border-radius: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    touch-action: none;
+  }
+  .canvas-hint { text-align: center; font-size: 11px; color: #a8977f; margin-top: 8px; }
+
+  form { display: flex; flex-direction: column; gap: 12px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: #8a7c6d; }
+  .field input, .field select {
+    padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px;
+    background: white; color: var(--text); font-family: inherit;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn { flex: 1; border: none; border-radius: 999px; padding: 13px; font-size: 14px;
+    font-weight: 600; cursor: pointer; }
+  .btn-primary { background: var(--accent-dark); color: white; }
+  .btn-secondary { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+
+  .back-link { display: inline-block; margin-bottom: 12px; font-size: 13px; color: var(--accent-dark);
+    text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back-link" href="index.html">&larr; 산책 다이어리로 돌아가기</a>
+
+  <div class="variant-nav">
+    <a href="card.html">시안 A · 기본형 (전체 스탯)</a>
+    <a href="card-keyring.html">시안 B · 키링형 (실물 출력용)</a>
+    <a href="card-keyring-b1.html">시안 B-1 · 라운드 사각형</a>
+    <a href="card-story.html" class="active">시안 C · 스토리 공유형</a>
+    <a href="card-stamp.html">시안 D · 여권/스탬프형</a>
+  </div>
+
+  <header>
+    <h1>📱 산책 카드 — 스토리 공유형</h1>
+    <p>인스타그램/카톡 스토리에 그대로 올리는 걸 염두에 둔 세로형(9:16). "소장용 카드"가 아니라
+    "지금 산책 인증샷"에 가까운 컨셉이라 스킬/패시브 텍스트는 뺐습니다. 사진이 배경 전체를
+    채웁니다. 자세한 내용은 <a href="PROJECT_CONTEXT.md">PROJECT_CONTEXT.md</a> 참고.</p>
+  </header>
+
+  <div class="note">
+    사진은 브라우저 안에서만 처리되며 어디로도 전송되지 않습니다. "카드 이미지 저장"을 누르면
+    이 기기에 PNG로 다운로드됩니다.
+  </div>
+
+  <div class="layout">
+  <div class="preview-col">
+  <div class="canvas-holder">
+    <canvas id="card-canvas" width="720" height="1280"></canvas>
+  </div>
+  <div class="canvas-hint">사진 부분을 드래그하면 위치를, 스크롤(모바일은 두 손가락 핀치)로
+  확대·축소를 조절할 수 있어요</div>
+  </div>
+
+  <div class="edit-col">
+  <form id="card-form">
+    <div class="field">
+      <label for="photo">반려동물 사진</label>
+      <input type="file" id="photo" accept="image/*" capture="environment">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="pet-name">이름</label>
+        <input type="text" id="pet-name" value="뽀삐" maxlength="12">
+      </div>
+      <div class="field">
+        <label for="level">레벨 / 칭호</label>
+        <input type="text" id="level" value="Level 3 - 다산 탐험가" maxlength="20">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="rarity">등급 (별 개수 1~5)</label>
+        <input type="number" id="rarity" value="5" min="1" max="5">
+      </div>
+      <div class="field">
+        <label for="type-tag">속성 태그</label>
+        <input type="text" id="type-tag" value="공원산책형" maxlength="10">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="hp">HP (0~100)</label>
+        <input type="number" id="hp" value="100" min="0" max="100">
+      </div>
+      <div class="field">
+        <label for="filter">사진 감성 필터</label>
+        <select id="filter">
+          <option value="pastel">파스텔</option>
+          <option value="holo">홀로그램톤</option>
+          <option value="vivid">비비드</option>
+          <option value="cartoon">카툰 (윤곽선+색상 단순화)</option>
+          <option value="none">필터 없음</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="dist-today">오늘 산책 거리 (km)</label>
+        <input type="number" id="dist-today" value="3.2" step="0.1" min="0">
+      </div>
+      <div class="field">
+        <label for="dist-total">누적 산책 거리 (km)</label>
+        <input type="number" id="dist-total" value="140" step="0.1" min="0">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="badge-select">획득 칭호 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <div style="display:flex; gap:8px;">
+        <select id="badge-select" style="flex:1;"></select>
+        <button type="button" id="badge-reroll-btn" class="btn btn-secondary" style="padding:9px 14px; flex:none;">🎲 다시 뽑기</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="badge">획득 칭호</label>
+      <input type="text" id="badge" maxlength="50">
+    </div>
+  </form>
+
+  <div class="actions">
+    <button class="btn btn-secondary" id="redraw-btn" type="button">미리보기 갱신</button>
+    <button class="btn btn-primary" id="save-btn" type="button">카드 이미지 저장</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
+<script src="card-shared.js?v=9"></script>
+<script>
+(function () {
+  var CS = window.CardShared;
+  var canvas = document.getElementById('card-canvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+
+  var photoInput = document.getElementById('photo');
+  var petImage = null;
+
+  // 사진이 캔버스 전체를 채우는 풀블리드라, 프레임 영역 = 캔버스 전체
+  var PHOTO_RECT = { x: 0, y: 0, w: W, h: H };
+  var photoOffset = { x: 0, y: 0 };
+  // 스크롤/핀치로 조절하는 확대 배율 — 1이 기본(cover-fit), 최대 3배까지 (2026-08-26 요청)
+  var photoZoom = 1;
+  var PHOTO_MIN_ZOOM = 1, PHOTO_MAX_ZOOM = 3;
+
+  function clampPhotoOffset() {
+    if (!petImage) return;
+    CS.clampOffset(photoOffset, CS.computePhotoFit(PHOTO_RECT, petImage, photoZoom));
+  }
+
+  var cartoonCache = { source: null, canvas: null };
+  function getPhotoDrawSource() {
+    if (val('filter') !== 'cartoon') return petImage;
+    if (cartoonCache.source !== petImage) {
+      cartoonCache.canvas = CS.applyCartoonEffect(petImage);
+      cartoonCache.source = petImage;
+    }
+    return cartoonCache.canvas;
+  }
+
+  var FILTER_MAP = CS.FILTER_MAP;
+
+  CS.preloadEmoji(['🐾', '❤️', '🚶', '🏅'], function () { renderCard(); });
+
+  // 산책 종료(index.html) 직후 넘어온 값이 있으면 거리 필드를 자동으로 채운다 — "탭 한 번 =
+  // 완성"에 가까워지도록, 사용자가 직접 숫자를 입력할 필요를 없앰(2026-09-02, PROJECT_CONTEXT.md
+  // "서비스 다이어트" 참고). 값이 없으면(카드 화면에 바로 들어온 경우) 기존 기본값을 그대로 둔다.
+  try {
+    var lastWalk = JSON.parse(localStorage.getItem('petwalk_last_walk'));
+    if (lastWalk) {
+      if (lastWalk.distanceKm != null) document.getElementById('dist-today').value = lastWalk.distanceKm.toFixed(1);
+      if (lastWalk.totalDistanceKm != null) document.getElementById('dist-total').value = lastWalk.totalDistanceKm.toFixed(1);
+    }
+  } catch (e) {}
+
+  // 획득 칭호는 보상이 아니라 카드 문구 소재일 뿐이라(위 "최종 결정" 참고), 매번 랜덤으로
+  // 하나 골라 채워둔다 — 마음에 안 들면 드롭다운이나 "다시 뽑기" 버튼으로 바꿀 수 있다.
+  var randomBadgeIndex = Math.floor(Math.random() * CS.BADGES.length);
+  CS.buildSimpleCatalogSelect(document.getElementById('badge-select'), CS.BADGES,
+    document.getElementById('badge'), randomBadgeIndex);
+
+  document.getElementById('badge-reroll-btn').addEventListener('click', function () {
+    var sel = document.getElementById('badge-select');
+    sel.value = Math.floor(Math.random() * CS.BADGES.length);
+    sel.dispatchEvent(new Event('change'));
+  });
+
+  function val(id) { return document.getElementById(id).value; }
+  function roundRect(x, y, w, h, r) { CS.roundRect(ctx, x, y, w, h, r); }
+
+  function drawPhoto() {
+    ctx.fillStyle = '#e9dccb';
+    ctx.fillRect(0, 0, W, H);
+    if (petImage) {
+      var filterKey = val('filter');
+      var drawSource = getPhotoDrawSource();
+      ctx.filter = filterKey === 'cartoon' ? 'none' : (FILTER_MAP[filterKey] || 'none');
+      var fit = CS.computePhotoFit(PHOTO_RECT, drawSource, photoZoom);
+      var dx = (W - fit.dw) / 2 + photoOffset.x;
+      var dy = (H - fit.dh) / 2 + photoOffset.y;
+      ctx.imageSmoothingEnabled = filterKey !== 'cartoon';
+      ctx.drawImage(drawSource, dx, dy, fit.dw, fit.dh);
+      ctx.imageSmoothingEnabled = true;
+      ctx.filter = 'none';
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('(반려동물 사진을 선택해주세요)', W / 2, H / 2 - 40);
+    }
+  }
+
+  function pillBadge(x, y, w, h, align, drawInner) {
+    roundRect(x, y, w, h, h / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fill();
+    drawInner();
+  }
+
+  function statBadge(x, y, w, h, emoji, text) {
+    roundRect(x, y, w, h, h / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
+    roundRect(x, y, w, h, h / 2);
+    ctx.stroke();
+    CS.drawEmojiLine(ctx, {
+      emoji: emoji, text: text, x: x + w / 2, y: y + h / 2 + 1,
+      font: '600 19px "Malgun Gothic", sans-serif', color: '#fffaf3',
+      size: 20, align: 'center', baseline: 'middle'
+    });
+  }
+
+  function drawCard() {
+    ctx.clearRect(0, 0, W, H);
+    drawPhoto();
+
+    // 상단 떠 있는 배지 (등급 · 속성)
+    var rarity = Math.max(1, Math.min(5, parseInt(val('rarity'), 10) || 1));
+    var stars = '';
+    for (var i = 0; i < rarity; i++) stars += '★';
+    ctx.font = '600 20px sans-serif';
+    var starsW = ctx.measureText(stars).width;
+    pillBadge(32, 40, starsW + 36, 44, 'left', function () {
+      ctx.fillStyle = '#e0a52e';
+      ctx.font = '600 20px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(stars, 50, 63);
+    });
+
+    ctx.font = '600 16px "Malgun Gothic", sans-serif';
+    var tagText = val('type-tag');
+    var tagW = ctx.measureText(tagText).width + 40;
+    pillBadge(W - 32 - tagW, 40, tagW, 44, 'center', function () {
+      ctx.fillStyle = '#d98a72';
+      ctx.font = '600 16px "Malgun Gothic", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(tagText, W - 32 - tagW / 2, 63);
+    });
+
+    // 하단 그라데이션 스크림 + 텍스트
+    var scrim = ctx.createLinearGradient(0, H - 420, 0, H);
+    scrim.addColorStop(0, 'rgba(20,14,10,0)');
+    scrim.addColorStop(1, 'rgba(20,14,10,0.72)');
+    ctx.fillStyle = scrim;
+    ctx.fillRect(0, H - 420, W, 420);
+
+    CS.drawEmojiLine(ctx, {
+      emoji: '🐾', text: val('pet-name'), x: 40, y: H - 300,
+      font: '46px "Black Han Sans", sans-serif', color: '#fffaf3', size: 40, align: 'left'
+    });
+    ctx.fillStyle = 'rgba(255,250,243,0.85)';
+    ctx.font = '600 22px "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(val('level'), 40, H - 244);
+
+    var hp = Math.max(0, Math.min(100, parseInt(val('hp'), 10) || 0));
+    statBadge(40, H - 190, 200, 52, '❤️', hp + '/100');
+    statBadge(40 + 200 + 16, H - 190, 216, 52, '🚶', val('dist-today') + 'km (누적 ' + val('dist-total') + 'km)');
+
+    CS.drawEmojiLine(ctx, {
+      emoji: '🏅', text: val('badge'), x: 40, y: H - 108,
+      font: '600 18px "Malgun Gothic", sans-serif', color: 'rgba(255,250,243,0.85)',
+      size: 18, align: 'left'
+    });
+  }
+
+  // 스토리는 인스타/카톡 규격(9:16)에 맞춰야 해서 다른 시안과 달리 캔버스 높이를 내용에 맞춰
+  // 늘리지 않는다 — 항상 720x1280 고정.
+  function renderCard() { drawCard(); }
+
+  photoInput.addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var img = new Image();
+    img.onload = function () {
+      petImage = img;
+      photoOffset.x = 0;
+      photoOffset.y = 0;
+      photoZoom = 1;
+      canvas.style.cursor = 'grab';
+      renderCard();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  // 사진이 캔버스 전체를 덮으므로, 어디를 드래그해도 사진이 움직인다.
+  // getZoom/setZoom을 같이 넘겨서 스크롤(데스크톱)·핀치(모바일)로 확대·축소도 지원한다.
+  CS.attachPhotoDrag({
+    canvas: canvas,
+    hasImage: function () { return !!petImage; },
+    hitTest: function () { return true; },
+    getOffset: function () { return photoOffset; },
+    setOffset: function (x, y) {
+      photoOffset.x = x;
+      photoOffset.y = y;
+      clampPhotoOffset();
+    },
+    getZoom: function () { return photoZoom; },
+    setZoom: function (z) {
+      photoZoom = z;
+      clampPhotoOffset();
+    },
+    minZoom: PHOTO_MIN_ZOOM,
+    maxZoom: PHOTO_MAX_ZOOM,
+    onChange: renderCard
+  });
+
+  document.getElementById('card-form').addEventListener('input', renderCard);
+  document.getElementById('redraw-btn').addEventListener('click', renderCard);
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    CS.downloadCanvasPNG(canvas, (val('pet-name') || 'walk-card') + '_story.png');
+  });
+
+  renderCard();
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('46px "Black Han Sans"').catch(function () {}).then(renderCard);
+  }
+})();
+</script>
+</body>
+</html>

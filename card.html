@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 카드 만들기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7ede2;
+    --accent: #f2b6a0;
+    --accent-dark: #d98a72;
+    --text: #4a3f35;
+    --panel: #fffaf3;
+    --line: #e5d9c8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { margin-bottom: 16px; }
+  header h1 { font-size: 18px; margin: 0 0 4px; }
+  header p { font-size: 12px; color: #8a7c6d; margin: 0; line-height: 1.5; }
+  header a { color: var(--accent-dark); }
+
+  .note {
+    font-size: 12px; color: #8a7c6d; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 18px; line-height: 1.5;
+  }
+
+  .layout { display: flex; gap: 28px; align-items: flex-start; }
+  .preview-col { flex: 0 0 360px; position: sticky; top: 20px; }
+  .edit-col { flex: 1; min-width: 280px; }
+  @media (max-width: 760px) {
+    .layout { flex-direction: column; }
+    .preview-col { position: static; flex: none; width: 100%; }
+  }
+
+  .canvas-holder {
+    display: flex; justify-content: center; margin-bottom: 18px;
+  }
+  #card-canvas {
+    width: 100%; max-width: 340px; border-radius: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    touch-action: none;
+  }
+  .canvas-hint {
+    text-align: center; font-size: 11px; color: #a8977f; margin-top: 8px;
+  }
+
+  form { display: flex; flex-direction: column; gap: 12px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; font-weight: 600; color: #8a7c6d; }
+  .field input, .field select, .field textarea {
+    padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px;
+    background: white; color: var(--text); font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 54px; line-height: 1.4; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn { flex: 1; border: none; border-radius: 999px; padding: 13px; font-size: 14px;
+    font-weight: 600; cursor: pointer; }
+  .btn-primary { background: var(--accent-dark); color: white; }
+  .btn-secondary { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+
+  .back-link { display: inline-block; margin-bottom: 12px; font-size: 13px; color: var(--accent-dark);
+    text-decoration: none; }
+
+  .variant-nav { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .variant-nav a {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; text-decoration: none;
+    border: 1px solid var(--line); color: var(--text); background: var(--panel);
+  }
+  .variant-nav a.active { background: var(--accent-dark); color: white; border-color: var(--accent-dark); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back-link" href="index.html">&larr; 산책 다이어리로 돌아가기</a>
+
+  <div class="variant-nav">
+    <a href="card.html" class="active">시안 A · 기본형 (전체 스탯)</a>
+    <a href="card-keyring.html">시안 B · 키링형 (실물 출력용)</a>
+    <a href="card-keyring-b1.html">시안 B-1 · 라운드 사각형</a>
+    <a href="card-story.html">시안 C · 스토리 공유형</a>
+    <a href="card-stamp.html">시안 D · 여권/스탬프형</a>
+  </div>
+
+  <header>
+    <h1>🎴 산책 카드 만들기</h1>
+    <p>미션 완료 리워드 프로토타입. 값은 아직 전부 직접 입력하는 방식이며, 실제 산책 데이터
+    자동 연동(HP·스킬·칭호 계산 규칙)은 미션 설계가 확정된 뒤 연결 예정 —
+    <a href="PROJECT_CONTEXT.md">PROJECT_CONTEXT.md</a> 참고.</p>
+  </header>
+
+  <div class="note">
+    사진은 브라우저 안에서만 처리되며 어디로도 전송되지 않습니다. "카드 이미지 저장"을 누르면
+    이 기기에 PNG로 다운로드됩니다.
+  </div>
+
+  <div class="layout">
+  <div class="preview-col">
+  <div class="canvas-holder">
+    <canvas id="card-canvas" width="680" height="1300"></canvas>
+  </div>
+  <div class="canvas-hint">사진 부분을 드래그하면 위치를, 스크롤(모바일은 두 손가락 핀치)로
+  확대·축소를 조절할 수 있어요</div>
+  </div>
+
+  <div class="edit-col">
+  <form id="card-form">
+    <div class="field">
+      <label for="photo">반려동물 사진</label>
+      <input type="file" id="photo" accept="image/*" capture="environment">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="pet-name">이름</label>
+        <input type="text" id="pet-name" value="뽀삐" maxlength="12">
+      </div>
+      <div class="field">
+        <label for="level">레벨 / 칭호</label>
+        <input type="text" id="level" value="Level 3 - 다산 탐험가" maxlength="20">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="rarity">등급 (별 개수 1~5)</label>
+        <input type="number" id="rarity" value="5" min="1" max="5">
+      </div>
+      <div class="field">
+        <label for="type-tag">속성 태그</label>
+        <input type="text" id="type-tag" value="공원산책형" maxlength="10">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="hp">HP (0~100)</label>
+        <input type="number" id="hp" value="100" min="0" max="100">
+      </div>
+      <div class="field">
+        <label for="filter">사진 감성 필터</label>
+        <select id="filter">
+          <option value="pastel">파스텔</option>
+          <option value="holo">홀로그램톤</option>
+          <option value="vivid">비비드</option>
+          <option value="cartoon">카툰 (윤곽선+색상 단순화)</option>
+          <option value="none">필터 없음</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="dist-today">오늘 산책 거리 (km)</label>
+        <input type="number" id="dist-today" value="3.2" step="0.1" min="0">
+      </div>
+      <div class="field">
+        <label for="dist-total">누적 산책 거리 (km)</label>
+        <input type="number" id="dist-total" value="140" step="0.1" min="0">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="skill1-select">스킬 1 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="skill1-select"></select>
+    </div>
+    <div class="field">
+      <label for="skill1-title">스킬 1 제목 (괄호 안에 드립 스탯)</label>
+      <input type="text" id="skill1-title" maxlength="40">
+    </div>
+    <div class="field">
+      <label for="skill1-desc">스킬 1 설명 (Enter로 줄바꿈 가능)</label>
+      <textarea id="skill1-desc" maxlength="90" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label for="skill2-select">스킬 2 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="skill2-select"></select>
+    </div>
+    <div class="field">
+      <label for="skill2-title">스킬 2 제목 (괄호 안에 드립 스탯)</label>
+      <input type="text" id="skill2-title" maxlength="40">
+    </div>
+    <div class="field">
+      <label for="skill2-desc">스킬 2 설명 (Enter로 줄바꿈 가능)</label>
+      <textarea id="skill2-desc" maxlength="90" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label for="passive-select">패시브 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="passive-select"></select>
+    </div>
+    <div class="field">
+      <label for="passive-title">패시브 제목</label>
+      <input type="text" id="passive-title" maxlength="30">
+    </div>
+    <div class="field">
+      <label for="passive-desc">패시브 설명 (Enter로 줄바꿈 가능)</label>
+      <textarea id="passive-desc" maxlength="120" rows="2"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="badge-select">획득 칭호 (목록에서 고르면 아래 칸이 채워짐 — 직접 수정 가능)</label>
+      <select id="badge-select"></select>
+    </div>
+    <div class="field">
+      <label for="badge">획득 칭호</label>
+      <input type="text" id="badge" maxlength="50">
+    </div>
+  </form>
+
+  <div class="actions">
+    <button class="btn btn-secondary" id="redraw-btn" type="button">미리보기 갱신</button>
+    <button class="btn btn-primary" id="save-btn" type="button">카드 이미지 저장</button>
+  </div>
+  </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
+<script src="card-shared.js?v=9"></script>
+<script>
+(function () {
+  var CS = window.CardShared;
+  var canvas = document.getElementById('card-canvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+
+  var photoInput = document.getElementById('photo');
+  var petImage = null;
+
+  // 사진 영역 좌표 (drawCard와 드래그 핸들러가 같이 참조)
+  var PHOTO_RECT = { x: 60, y: 150, w: W - 120, h: 340 };
+  var photoOffset = { x: 0, y: 0 }; // 중앙 기준 드래그로 밀린 정도 (캔버스 내부 좌표계)
+  // 스크롤/핀치로 조절하는 확대 배율 — 1이 기본(cover-fit), 최대 3배까지 (2026-08-26 요청)
+  var photoZoom = 1;
+  var PHOTO_MIN_ZOOM = 1, PHOTO_MAX_ZOOM = 3;
+
+  function clampPhotoOffset() {
+    if (!petImage) return;
+    CS.clampOffset(photoOffset, CS.computePhotoFit(PHOTO_RECT, petImage, photoZoom));
+  }
+
+  // 카툰 필터는 픽셀을 직접 순회하는 무거운 처리라 매번 다시 돌리면 타이핑할 때마다 버벅인다.
+  // 같은 사진이면 한 번 처리한 결과를 재사용한다 (사진을 새로 올리면 자동으로 무효화됨).
+  var cartoonCache = { source: null, canvas: null };
+  function getPhotoDrawSource() {
+    if (val('filter') !== 'cartoon') return petImage;
+    if (cartoonCache.source !== petImage) {
+      cartoonCache.canvas = CS.applyCartoonEffect(petImage);
+      cartoonCache.source = petImage;
+    }
+    return cartoonCache.canvas;
+  }
+
+  var FILTER_MAP = CS.FILTER_MAP;
+  var SKILLS = CS.SKILLS;
+  var PASSIVES = CS.PASSIVES;
+
+  CS.buildCatalogSelect(document.getElementById('skill1-select'), SKILLS,
+    document.getElementById('skill1-title'), document.getElementById('skill1-desc'), 1);
+  CS.buildCatalogSelect(document.getElementById('skill2-select'), SKILLS,
+    document.getElementById('skill2-title'), document.getElementById('skill2-desc'), 0);
+  CS.buildCatalogSelect(document.getElementById('passive-select'), PASSIVES,
+    document.getElementById('passive-title'), document.getElementById('passive-desc'), 0);
+  CS.buildSimpleCatalogSelect(document.getElementById('badge-select'), CS.BADGES,
+    document.getElementById('badge'), 0);
+
+  // Twemoji 아이콘 미리 불러오기 — 로딩이 끝날 때마다 다시 그려서 하나씩 자연스럽게 나타나게 한다
+  CS.preloadEmoji(['🐾', '⚡', '🚶', '🌙', '🏅'], function () { renderCard(); });
+
+  function val(id) { return document.getElementById(id).value; }
+
+  function roundRect(x, y, w, h, r) { CS.roundRect(ctx, x, y, w, h, r); }
+
+  function drawCard() {
+    ctx.clearRect(0, 0, W, H);
+
+    // 카드 배경 프레임
+    var grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#fdf1e3');
+    grad.addColorStop(1, '#f6dfd2');
+    ctx.fillStyle = grad;
+    roundRect(0, 0, W, H, 36);
+    ctx.fill();
+
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#d98a72';
+    roundRect(14, 14, W - 28, H - 28, 28);
+    ctx.stroke();
+
+    // 상단: 이름 / 별 등급 (임팩트 있는 타이틀용 폰트 — B급 감성에 맞춰 굵고 통통한 서체)
+    CS.drawEmojiLine(ctx, {
+      emoji: '🐾', text: val('pet-name'), x: 44, y: 42,
+      font: '34px "Black Han Sans", sans-serif', color: '#4a3f35', size: 30, align: 'left'
+    });
+
+    var rarity = Math.max(1, Math.min(5, parseInt(val('rarity'), 10) || 1));
+    var stars = '';
+    for (var i = 0; i < rarity; i++) stars += '★';
+    ctx.font = '600 26px sans-serif';
+    ctx.fillStyle = '#e0a52e';
+    ctx.textAlign = 'right';
+    ctx.fillText(stars, W - 44, 46);
+    ctx.textAlign = 'left';
+
+    // 속성 태그
+    CS.drawEmojiLine(ctx, {
+      emoji: '⚡', text: '속성: ' + val('type-tag'), x: 44, y: 92,
+      font: '600 20px "Malgun Gothic", sans-serif', color: '#d98a72', size: 18, align: 'left'
+    });
+
+    // 사진 영역 (드래그로 위치 조절 가능 — photoOffset)
+    var photoX = PHOTO_RECT.x, photoY = PHOTO_RECT.y, photoW = PHOTO_RECT.w, photoH = PHOTO_RECT.h;
+    ctx.save();
+    roundRect(photoX, photoY, photoW, photoH, 20);
+    ctx.clip();
+    ctx.fillStyle = '#e9dccb';
+    ctx.fillRect(photoX, photoY, photoW, photoH);
+    if (petImage) {
+      var filterKey = val('filter');
+      var drawSource = getPhotoDrawSource();
+      ctx.filter = filterKey === 'cartoon' ? 'none' : (FILTER_MAP[filterKey] || 'none');
+      var fit = CS.computePhotoFit(PHOTO_RECT, drawSource, photoZoom);
+      var dw = fit.dw, dh = fit.dh;
+      var dx = photoX + (photoW - dw) / 2 + photoOffset.x;
+      var dy = photoY + (photoH - dh) / 2 + photoOffset.y;
+      // 카툰 필터는 윤곽선이 흐려지지 않도록 축소 시 부드럽게 섞지 않고 또렷하게 그린다
+      ctx.imageSmoothingEnabled = filterKey !== 'cartoon';
+      ctx.drawImage(drawSource, dx, dy, dw, dh);
+      ctx.imageSmoothingEnabled = true;
+      ctx.filter = 'none';
+    } else {
+      ctx.fillStyle = '#a89a86';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('사진을 선택해주세요', photoX + photoW / 2, photoY + photoH / 2);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+
+    // 레벨/칭호
+    var levelY = photoY + photoH + 26;
+    ctx.fillStyle = '#4a3f35';
+    ctx.font = '24px "Black Han Sans", sans-serif';
+    ctx.fillText(val('level'), 44, levelY);
+
+    // HP 바 (레벨 텍스트 아래로 충분히 띄움 — 사진을 넣으면 레벨 줄과 겹쳐 보이던 문제 수정)
+    var hp = Math.max(0, Math.min(100, parseInt(val('hp'), 10) || 0));
+    var hpLabelY = levelY + 48;
+    var barX = 44, barY = hpLabelY + 26, barW = W - 88, barH = 24;
+    ctx.font = '600 18px sans-serif';
+    ctx.fillStyle = '#4a3f35';
+    ctx.fillText('HP', barX, hpLabelY);
+    ctx.fillStyle = '#e9dccb';
+    roundRect(barX, barY, barW, barH, 12);
+    ctx.fill();
+    ctx.fillStyle = '#8fbf7f';
+    roundRect(barX, barY, barW * (hp / 100), barH, 12);
+    ctx.fill();
+    ctx.fillStyle = '#4a3f35';
+    ctx.font = '600 16px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(hp + ' / 100', barX + barW, hpLabelY);
+    ctx.textAlign = 'left';
+
+    // 구분선
+    var lineY = barY + barH + 26;
+    ctx.strokeStyle = '#d9c7b3';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(44, lineY);
+    ctx.lineTo(W - 44, lineY);
+    ctx.stroke();
+
+    // 스탯 칩 (가운데 정렬 + 카드 폭을 채우는 배경 칩으로 허전해 보이던 느낌 보완)
+    function drawChip(y, h, emoji, text, fontSize) {
+      var x = 44, w = W - 88;
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      roundRect(x, y, w, h, h / 2);
+      ctx.fill();
+      ctx.strokeStyle = '#e5d9c8';
+      ctx.lineWidth = 2;
+      roundRect(x, y, w, h, h / 2);
+      ctx.stroke();
+      CS.drawEmojiLine(ctx, {
+        emoji: emoji, text: text, x: x + w / 2, y: y + h / 2 + 1,
+        font: '600 ' + fontSize + 'px "Malgun Gothic", sans-serif', color: '#4a3f35',
+        size: fontSize + 2, align: 'center', baseline: 'middle'
+      });
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+    }
+
+    var chipGap = 14;
+    var y = lineY + 22;
+    var distChipH = 56;
+    drawChip(y, distChipH, '🚶', '오늘 ' + val('dist-today') + 'km  ·  누적 ' + val('dist-total') + 'km', 20);
+    y += distChipH + chipGap;
+    y = CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88, titleEmoji: '⚡', titleText: val('skill1-title'), desc: val('skill1-desc'), titleColor: '#d98a72', dashed: false });
+    y += chipGap;
+    y = CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88, titleEmoji: '⚡', titleText: val('skill2-title'), desc: val('skill2-desc'), titleColor: '#d98a72', dashed: false });
+    y += chipGap;
+    y = CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88, titleEmoji: '🌙', titleText: '[' + val('passive-title') + ']', desc: val('passive-desc'), titleColor: '#8b7bab', dashed: true });
+    var chipsBottom = y;
+
+    // 칭호
+    CS.drawEmojiLine(ctx, {
+      emoji: '🏅', text: val('badge'), x: W / 2, y: chipsBottom + 24,
+      font: '22px "Black Han Sans", sans-serif', color: '#d98a72', size: 22, align: 'center'
+    });
+
+    return chipsBottom + 24 + 30; // 칭호 텍스트 한 줄 높이(대략)까지 포함한 실제 콘텐츠 바닥
+  }
+
+  // 카드 아래쪽에 빈 여백이 남지 않도록, 실제로 그려진 내용 높이에 맞춰 캔버스 세로 길이를 맞춘다.
+  // (그릴 때마다 콘텐츠 바닥 위치가 바뀌므로, 한 번 그려서 높이를 재고 필요하면 캔버스를 다시 잘라 그린다)
+  function renderCard() {
+    var contentBottom = drawCard();
+    var neededH = Math.ceil(contentBottom) + 34;
+    if (neededH !== H) {
+      canvas.height = neededH;
+      H = neededH;
+      drawCard();
+    }
+  }
+
+  photoInput.addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var img = new Image();
+    img.onload = function () {
+      petImage = img;
+      photoOffset.x = 0;
+      photoOffset.y = 0;
+      photoZoom = 1;
+      canvas.style.cursor = 'grab';
+      renderCard();
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  // 사진 드래그로 위치 조절 (마우스/터치 공통) — 사각형 프레임 안에 있는지만 확인하면 됨.
+  // getZoom/setZoom을 같이 넘겨서 스크롤(데스크톱)·핀치(모바일)로 확대·축소도 지원한다.
+  CS.attachPhotoDrag({
+    canvas: canvas,
+    hasImage: function () { return !!petImage; },
+    hitTest: function (x, y) {
+      return x >= PHOTO_RECT.x && x <= PHOTO_RECT.x + PHOTO_RECT.w &&
+        y >= PHOTO_RECT.y && y <= PHOTO_RECT.y + PHOTO_RECT.h;
+    },
+    getOffset: function () { return photoOffset; },
+    setOffset: function (x, y) {
+      photoOffset.x = x;
+      photoOffset.y = y;
+      clampPhotoOffset();
+    },
+    getZoom: function () { return photoZoom; },
+    setZoom: function (z) {
+      photoZoom = z;
+      clampPhotoOffset(); // 확대 배율이 바뀌면 팬 가능 범위도 바뀌므로 다시 클램프
+    },
+    minZoom: PHOTO_MIN_ZOOM,
+    maxZoom: PHOTO_MAX_ZOOM,
+    onChange: renderCard
+  });
+
+  document.getElementById('card-form').addEventListener('input', renderCard);
+  document.getElementById('redraw-btn').addEventListener('click', renderCard);
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    CS.downloadCanvasPNG(canvas, (val('pet-name') || 'walk-card') + '_card.png');
+  });
+
+  renderCard();
+  // 캔버스는 폰트가 실제로 로드됐는지 기다려주지 않아서, 웹폰트 로딩 전에 그리면
+  // 기본 서체로 그려진 채 남는다. 로드가 끝나면 한 번 더 그려서 확실히 반영한다.
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('34px "Black Han Sans"').catch(function () {}).then(renderCard);
+  }
+})();
+</script>
+</body>
+</html>

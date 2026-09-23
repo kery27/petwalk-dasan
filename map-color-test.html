@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다산 댕댕이 지도 컬러톤 비교</title>
+
+    <!-- Leaflet CSS (무료, 가입 X) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 톤 전환은 이 필터 값만 바꿔서 구현 (원본 파일의 접근 방식 그대로 유지) */
+        .leaflet-tile-pane {
+            filter: grayscale(85%) brightness(108%) contrast(105%);
+            transition: filter 0.25s ease;
+        }
+
+        .custom-pet-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 3px solid #ff7675;
+            border-radius: 50%;
+            width: 52px !important;
+            height: 52px !important;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+            font-size: 28px;
+            cursor: pointer;
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 16px;
+            padding: 4px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            background: #ffffff;
+        }
+
+        .pet-popup-card {
+            text-align: center;
+            padding: 8px;
+            width: 190px;
+        }
+
+        .pet-popup-card .badge {
+            display: inline-block;
+            background: #ffeaa7;
+            color: #d63031;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin-bottom: 6px;
+        }
+
+        .pet-popup-card h4 {
+            font-size: 16px;
+            color: #2d3436;
+            margin-bottom: 4px;
+        }
+
+        .pet-popup-card p {
+            font-size: 12px;
+            color: #636e72;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .pet-popup-card button {
+            width: 100%;
+            background: #0984e3;
+            color: white;
+            border: none;
+            padding: 8px 0;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* 톤 선택 패널 */
+        #tone-panel {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 14px;
+            padding: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 190px;
+        }
+
+        #tone-panel .panel-title {
+            font-size: 11px;
+            color: #636e72;
+            font-weight: bold;
+            padding: 2px 4px 4px;
+        }
+
+        #tone-panel button {
+            border: none;
+            border-radius: 8px;
+            padding: 9px 10px;
+            font-size: 13px;
+            text-align: left;
+            cursor: pointer;
+            background: #f1f2f6;
+            color: #2d3436;
+            font-weight: 600;
+        }
+
+        #tone-panel button.active {
+            background: #2d3436;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="tone-panel">
+        <div class="panel-title">지도 컬러톤 5종</div>
+        <button data-tone="mono" class="active">① 모노톤 그레이</button>
+        <button data-tone="mint">② 쿨 파스텔 민트</button>
+        <button data-tone="sepia">③ 세피아 빈티지</button>
+        <button data-tone="night">④ 다크 네이비</button>
+        <button data-tone="lavender">⑤ 라벤더 파스텔</button>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const TONES = {
+            mono:     'grayscale(85%) brightness(108%) contrast(105%)',
+            mint:     'saturate(65%) hue-rotate(130deg) brightness(108%) contrast(95%)',
+            sepia:    'sepia(45%) saturate(130%) brightness(102%) contrast(94%)',
+            night:    'invert(92%) hue-rotate(265deg) brightness(90%) contrast(88%) saturate(90%)',
+            lavender: 'saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%)'
+        };
+
+        const tilePane = document.styleSheets[0]; // not used, kept simple below
+
+        function setTone(name) {
+            const style = document.querySelector('.leaflet-tile-pane');
+            if (style) style.style.filter = TONES[name];
+            document.querySelectorAll('#tone-panel button').forEach(b => {
+                b.classList.toggle('active', b.dataset.tone === name);
+            });
+        }
+
+        document.querySelectorAll('#tone-panel button').forEach(b => {
+            b.addEventListener('click', () => setTone(b.dataset.tone));
+        });
+
+        // 1. 다산 현대아울렛 / 중앙공원 중심 좌표
+        const map = L.map('map', {
+            zoomControl: false
+        }).setView([37.6185, 127.1578], 16);
+
+        // 2. API Key 없는 완전 무료 OpenStreetMap 타일
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        // 타일 팬이 생성된 후에만 필터 적용 가능하므로 지도 로드 후 기본 톤 지정
+        map.whenReady(() => setTone('mono'));
+
+        // 3. 커스텀 핀 생성 함수
+        function createPetIcon(emoji) {
+            return L.divIcon({
+                className: 'custom-pet-pin',
+                html: emoji,
+                iconSize: [52, 52],
+                iconAnchor: [26, 26],
+                popupAnchor: [0, -26]
+            });
+        }
+
+        // 4. 테스트 데이터
+        const petSpots = [
+            {
+                name: "LV.8 사자갈기 두부",
+                title: "#다산중앙공원_잠만보",
+                desc: "개모차에서 수면 모드 전환 성공!",
+                emoji: "🦁",
+                lat: 37.6185,
+                lng: 127.1578
+            },
+            {
+                name: "LV.15 앙꼬",
+                title: "#참지않는_다산동_참치",
+                desc: "손가락 내밀면 3초 내 앙-물기!",
+                emoji: "🐶",
+                lat: 37.6200,
+                lng: 127.1560
+            },
+            {
+                name: "LV.3 뽀삐",
+                title: "#다산아울렛_정복자",
+                desc: "수제간식점 문 앞 얼음 놀이 중",
+                emoji: "🐾",
+                lat: 37.6170,
+                lng: 127.1590
+            }
+        ];
+
+        // 5. 핀 설치 및 팝업 이벤트
+        petSpots.forEach(spot => {
+            const marker = L.marker([spot.lat, spot.lng], {
+                icon: createPetIcon(spot.emoji)
+            }).addTo(map);
+
+            const popupContent = `
+                <div class="pet-popup-card">
+                    <span class="badge">${spot.title}</span>
+                    <h4>${spot.name}</h4>
+                    <p>${spot.desc}</p>
+                    <button onclick="alert('${spot.name}의 카드 상세보기로 이동합니다!')">🃏 포켓몬 카드 보기</button>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+        });
+    </script>
+</body>
+</html>
