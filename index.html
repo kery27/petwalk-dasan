@@ -87,22 +87,38 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     border-left: 1px solid var(--panel-border); padding-left: 10px;
   }
-  .card-chip {
-    pointer-events: auto; flex-shrink: 0; text-decoration: none;
-    display: flex; align-items: center; gap: 6px;
+  /* 카드/기록/프로필/코스 관리로 늘어난 링크들을 칩으로 따로 늘어놓는 대신, 메뉴 버튼
+     하나 + 드롭다운으로 묶음(2026-09-23) — 지도 화면에 기능이 계속 추가될 걸 감안해서
+     화면이 안 복잡해지게. */
+  .menu-wrap { position: relative; flex-shrink: 0; pointer-events: auto; }
+  .menu-btn {
+    width: 40px; height: 40px; padding: 0; border: 1px solid var(--panel-border);
     background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%);
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
-    padding: 10px 14px;
+    border-radius: var(--radius-lg); color: var(--ink); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(var(--shadow-rgb), 0.12);
-    font-size: 13px; font-weight: 700; color: var(--accent);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .card-chip:active { transform: scale(0.95); box-shadow: inset 0 2px 6px rgba(0,0,0,0.08); }
+  .menu-btn:active { transform: scale(0.94); box-shadow: inset 0 2px 6px rgba(0,0,0,0.08); }
 
-  .top-right-stack { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; flex-shrink: 0; }
-  /* 관리자 도구 링크 — "카드"보다 덜 중요한 임시 링크라 강조색(accent) 대신 톤 낮춘 색 사용 */
-  .tool-chip { color: var(--ink-soft); padding: 8px 12px; font-size: 12px; }
+  .menu-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; min-width: 168px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
+    box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.2);
+    padding: 8px; display: flex; flex-direction: column; gap: 2px;
+    opacity: 0; transform: translateY(-6px) scale(0.98); pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  .menu-dropdown.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .menu-dropdown a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+    text-decoration: none; color: var(--ink); font-size: 14px; font-weight: 700;
+  }
+  .menu-dropdown a .icon { color: var(--accent); }
+  .menu-dropdown a:active { background: var(--bg-deep); }
+  /* 관리자 도구 링크 — 나머지 항목보다 덜 중요한 임시 링크라 강조색 대신 톤 낮춘 색 사용 */
+  .menu-dropdown a.tool-item, .menu-dropdown a.tool-item .icon { color: var(--ink-soft); }
 
   /* ── 하단바: 떠 있는 액션 그룹. 주 행동(산책 시작)이 시각적으로 더 무겁게 ──
      버튼에 상단 하이라이트 + 하단 그라데이션으로 "볼록한" 입체감을 주고,
@@ -253,7 +269,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .my-location-dot::after { animation: none; display: none; }
-    .btn, .card-chip, .locate-btn, .route-panel { transition: none; }
+    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel { transition: none; }
   }
 </style>
 </head>
@@ -267,25 +283,20 @@
     <span class="title">산책 다이어리</span>
     <span class="status" id="status-text">대기 중</span>
   </div>
-  <div class="top-right-stack">
-    <a class="card-chip" href="card-story.html">
-      <span class="icon" data-icon="cards"></span>
-      <span>카드</span>
-    </a>
-    <a class="card-chip" href="walk-history.html">
-      <span class="icon" data-icon="footprints"></span>
-      <span>기록</span>
-    </a>
-    <a class="card-chip" href="profile.html">
-      <span class="icon" data-icon="pawPrint"></span>
-      <span>프로필</span>
-    </a>
-    <!-- 관리자 전용 도구 링크 — 당분간만 기본 화면에 달아둠(2026-09-23, PROJECT_CONTEXT.md
-         "코스 관리자 도구" 참고). 일반 사용자 기능이 아니라서 --ink-soft로 덜 눈에 띄게 처리. -->
-    <a class="card-chip tool-chip" href="course-builder.html">
-      <span class="icon" data-icon="wrench"></span>
-      <span>코스 관리</span>
-    </a>
+  <!-- 카드/기록/프로필/코스 관리 링크를 각각 칩으로 따로 늘어놓다가, 화면에 기능이
+       계속 추가될 걸 감안해서 메뉴 버튼 하나 + 드롭다운으로 합침(2026-09-23). -->
+  <div class="menu-wrap" id="menu-wrap">
+    <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴" aria-expanded="false">
+      <span class="icon" data-icon="list"></span>
+    </button>
+    <div class="menu-dropdown" id="menu-dropdown">
+      <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드</span></a>
+      <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
+      <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
+      <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
+           일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
+      <a href="course-builder.html" class="tool-item"><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
+    </div>
   </div>
 </div>
 
@@ -328,6 +339,7 @@
     path: 'M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z',
     wrench: 'M226.76,69a8,8,0,0,0-12.84-2.88l-40.3,37.19-17.23-3.7-3.7-17.23,37.19-40.3A8,8,0,0,0,187,29.24,72,72,0,0,0,88,96,72.34,72.34,0,0,0,94,124.94L33.79,177c-.15.12-.29.26-.43.39a32,32,0,0,0,45.26,45.26c.13-.13.27-.28.39-.42L131.06,162A72,72,0,0,0,232,96,71.56,71.56,0,0,0,226.76,69ZM160,152a56.14,56.14,0,0,1-27.07-7,8,8,0,0,0-9.92,1.77L67.11,211.51a16,16,0,0,1-22.62-22.62L109.18,133a8,8,0,0,0,1.77-9.93,56,56,0,0,1,58.36-82.31l-31.2,33.81a8,8,0,0,0-1.94,7.1L141.83,108a8,8,0,0,0,6.14,6.14l26.35,5.66a8,8,0,0,0,7.1-1.94l33.81-31.2A56.06,56.06,0,0,1,160,152Z',
     footprints: 'M208.06,184H152a8,8,0,0,0-8,8v12a36,36,0,0,0,72.05,0V192A8,8,0,0,0,208.06,184Zm-8,20a20,20,0,0,1-40,0v-4h40ZM104,160h-56a8,8,0,0,0-8,8v12A36,36,0,0,0,112,180V168A8,8,0,0,0,104,160Zm-8,20a20,20,0,0,1-40,0v-4H96ZM76,16C64.36,16,53.07,26.31,44.2,45c-13.93,29.38-18.56,73,.29,96a8,8,0,0,0,6.2,2.93h50.55a8,8,0,0,0,6.2-2.93c18.85-23,14.22-66.65.29-96C98.85,26.31,87.57,16,76,16ZM97.15,128H54.78c-11.4-18.1-7.21-52.7,3.89-76.11C65.14,38.22,72.17,32,76,32s10.82,6.22,17.3,19.89C104.36,75.3,108.55,109.9,97.15,128Zm57.61,40h50.55a8,8,0,0,0,6.2-2.93c18.85-23,14.22-66.65.29-96C202.93,50.31,191.64,40,180,40s-22.89,10.31-31.77,29c-13.93,29.38-18.56,73,.29,96A8.05,8.05,0,0,0,154.76,168Zm8-92.11C169.22,62.22,176.25,56,180,56s10.82,6.22,17.29,19.89c11.1,23.41,15.29,58,3.9,76.11H158.85C147.45,133.9,151.64,99.3,162.74,75.89Z',
+    list: 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z',
     mapPin: 'M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z',
     cards: 'M184,72H40A16,16,0,0,0,24,88V200a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V88A16,16,0,0,0,184,72Zm0,128H40V88H184V200ZM232,56V176a8,8,0,0,1-16,0V56H64a8,8,0,0,1,0-16H216A16,16,0,0,1,232,56Z',
     compass: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z',
@@ -363,7 +375,9 @@
   var cardLinkBtn = document.getElementById('card-link-btn');
   var statusText = document.getElementById('status-text');
   var bottomBar = document.getElementById('bottom-bar');
-  var topRightStack = document.querySelector('.top-right-stack');
+  var menuWrap = document.getElementById('menu-wrap');
+  var menuBtn = document.getElementById('menu-btn');
+  var menuDropdown = document.getElementById('menu-dropdown');
 
   // route-panel(코스/견종 크기 선택)이 하단바와 겹치는 버그 수정용 — 하단바는
   // flex-wrap: wrap이라 버튼이 4개(추천 루트/핀 꽂기/산책 시작/카드 만들기)로 늘어나면
@@ -376,17 +390,31 @@
   positionRoutePanel();
   window.addEventListener('resize', positionRoutePanel);
 
-  // 줌 컨트롤(topright)이 top-bar 우측 칩 스택(카드/코스 관리)과 겹치지 않게, 그 실측
-  // 높이를 재서 여백을 맞춘다 — 위 positionRoutePanel과 같은 이유(칩이 늘어나도
-  // CSS 고정값으로는 못 따라감, "코스 관리" 칩을 추가하면서 실제로 겹쳤던 버그).
-  // .leaflet-top.leaflet-right는 initMap()이 줌 컨트롤을 추가한 뒤에야 DOM에 생기므로
-  // initMap() 호출 이후에만 쓸 수 있다.
+  // 줌 컨트롤(topright)이 top-bar 우측 메뉴 버튼과 겹치지 않게, 그 실측 높이를 재서
+  // 여백을 맞춘다 — 위 positionRoutePanel과 같은 이유로 만든 함수. 메뉴가 버튼 하나로
+  // 줄어들면서(드롭다운은 position:absolute라 버튼 자체 높이에 영향 없음) 이제 거의 항상
+  // 고정 높이지만, 계속 재사용할 수 있게 그대로 둠. .leaflet-top.leaflet-right는
+  // initMap()이 줌 컨트롤을 추가한 뒤에야 DOM에 생기므로 initMap() 호출 이후에만 쓸 수 있다.
   function positionZoomControl() {
     var zoomWrap = document.querySelector('.leaflet-top.leaflet-right');
-    if (!zoomWrap || !topRightStack) return;
-    zoomWrap.style.marginTop = (topRightStack.offsetHeight + 14 + 10) + 'px'; // top-bar top(14) + 여백(10)
+    if (!zoomWrap || !menuWrap) return;
+    zoomWrap.style.marginTop = (menuWrap.offsetHeight + 14 + 10) + 'px'; // top-bar top(14) + 여백(10)
   }
   window.addEventListener('resize', positionZoomControl);
+
+  // 메뉴 버튼을 누르면 드롭다운 토글, 바깥을 클릭하면 닫힘.
+  menuBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var willOpen = !menuDropdown.classList.contains('is-open');
+    menuDropdown.classList.toggle('is-open', willOpen);
+    menuBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  });
+  document.addEventListener('click', function (e) {
+    if (!menuWrap.contains(e.target)) {
+      menuDropdown.classList.remove('is-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
 
   var map, watchId = null, walking = false, walkStartTime = null;
   var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
