@@ -155,9 +155,12 @@
   .popup-warning { display: flex; align-items: center; gap: 5px; color: var(--warn); margin-top: 4px; }
   .popup-warning .icon { color: var(--warn); }
 
-  /* 추천 루트를 켰을 때만 나타나는 견종 크기 선택 패널 (하단바 바로 위).
+  /* 추천 루트를 켰을 때만 나타나는 코스/견종 크기 선택 패널 (하단바 바로 위).
      display:none 대신 opacity/transform 전환으로 부드럽게 나타나도록 함(JS는
-     is-visible 클래스만 토글 — index.html의 toggleRecommendedRoutes 참고). */
+     is-visible 클래스만 토글 — index.html의 toggleRecommendedRoutes 참고).
+     bottom 값은 92px가 기본값일 뿐, 실제로는 JS의 positionRoutePanel()이 하단바의
+     실측 높이를 재서 매번 다시 계산해 인라인으로 덮어쓴다 — 모바일처럼 하단바 버튼이
+     2줄로 줄바꿈되는 화면에서 고정값만 쓰면 이 패널과 겹치는 문제가 있었음(버그로 발견). */
   .route-panel {
     position: absolute; bottom: 92px; left: 14px; right: 14px; z-index: 10;
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
@@ -263,7 +266,7 @@
   </div>
 </div>
 
-<div class="bottom-bar">
+<div class="bottom-bar" id="bottom-bar">
   <button class="btn btn-secondary" id="route-btn">
     <span class="icon" data-icon="leaf"></span>
     <span class="btn-label">추천 루트</span>
@@ -322,6 +325,18 @@
   var dogSizeSelect = document.getElementById('dog-size-select');
   var cardLinkBtn = document.getElementById('card-link-btn');
   var statusText = document.getElementById('status-text');
+  var bottomBar = document.getElementById('bottom-bar');
+
+  // route-panel(코스/견종 크기 선택)이 하단바와 겹치는 버그 수정용 — 하단바는
+  // flex-wrap: wrap이라 버튼이 4개(추천 루트/핀 꽂기/산책 시작/카드 만들기)로 늘어나면
+  // 좁은 화면(모바일)에서 2줄로 줄바꿈되며 높이가 커진다. route-panel의 bottom 값을
+  // CSS에 고정값으로 박아두면 하단바가 늘어난 만큼을 못 따라가서 겹쳐 보였음 — 대신
+  // 하단바의 실측 높이(offsetHeight)를 재서 그 바로 위로 매번 다시 배치한다.
+  function positionRoutePanel() {
+    routePanel.style.bottom = (bottomBar.offsetHeight + 28) + 'px'; // 28 = 하단바 자체 bottom(18) + 여백(10)
+  }
+  positionRoutePanel();
+  window.addEventListener('resize', positionRoutePanel);
 
   var map, watchId = null, walking = false, walkStartTime = null;
   var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
@@ -428,7 +443,10 @@
     var walks = loadWalks();
     if (!walks.length) return;
     statusText.textContent = '이번 달 ' + walksThisMonthCount(walks) + '번 산책 · 연속 ' + computeStreakDays(walks) + '일째';
-    if (localStorage.getItem(LAST_WALK_KEY)) cardLinkBtn.style.display = 'flex';
+    if (localStorage.getItem(LAST_WALK_KEY)) {
+      cardLinkBtn.style.display = 'flex';
+      positionRoutePanel(); // 카드 만들기 버튼이 생기면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
+    }
   }
 
   // 두 GPS 좌표([lat, lng]) 사이 거리(km) — 하버사인 공식
@@ -639,6 +657,7 @@
         if (recommendedVisible) { // 로딩 중 사용자가 다시 꺼버렸을 수도 있음
           recommendedLayer.addTo(map);
           routeBtnLabel.textContent = '추천 루트 숨기기';
+          positionRoutePanel(); // 버튼 텍스트가 막 바뀐 뒤라 하단바 줄바꿈이 달라졌을 수 있음
           routePanel.classList.add('is-visible');
         }
       });
@@ -789,6 +808,7 @@
     walkBtn.querySelector('.btn-label').textContent = '산책 종료';
     pinBtn.disabled = false;
     cardLinkBtn.style.display = 'none';
+    positionRoutePanel(); // 카드 만들기 버튼이 사라지면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     statusText.textContent = '산책 기록 중...';
 
     watchId = navigator.geolocation.watchPosition(
@@ -821,6 +841,7 @@
       var result = saveWalkRecord(distanceKm, durationMin);
       statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째';
       cardLinkBtn.style.display = 'flex';
+      positionRoutePanel(); // 카드 만들기 버튼이 다시 생기면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     } else {
       statusText.textContent = '산책 종료 (이동 기록 없음)';
     }
