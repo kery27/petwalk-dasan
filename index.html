@@ -272,6 +272,10 @@
       <span class="icon" data-icon="cards"></span>
       <span>카드</span>
     </a>
+    <a class="card-chip" href="walk-history.html">
+      <span class="icon" data-icon="footprints"></span>
+      <span>기록</span>
+    </a>
     <!-- 관리자 전용 도구 링크 — 당분간만 기본 화면에 달아둠(2026-09-23, PROJECT_CONTEXT.md
          "코스 관리자 도구" 참고). 일반 사용자 기능이 아니라서 --ink-soft로 덜 눈에 띄게 처리. -->
     <a class="card-chip tool-chip" href="course-builder.html">
@@ -319,6 +323,7 @@
   var ICON_PATHS = {
     path: 'M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z',
     wrench: 'M226.76,69a8,8,0,0,0-12.84-2.88l-40.3,37.19-17.23-3.7-3.7-17.23,37.19-40.3A8,8,0,0,0,187,29.24,72,72,0,0,0,88,96,72.34,72.34,0,0,0,94,124.94L33.79,177c-.15.12-.29.26-.43.39a32,32,0,0,0,45.26,45.26c.13-.13.27-.28.39-.42L131.06,162A72,72,0,0,0,232,96,71.56,71.56,0,0,0,226.76,69ZM160,152a56.14,56.14,0,0,1-27.07-7,8,8,0,0,0-9.92,1.77L67.11,211.51a16,16,0,0,1-22.62-22.62L109.18,133a8,8,0,0,0,1.77-9.93,56,56,0,0,1,58.36-82.31l-31.2,33.81a8,8,0,0,0-1.94,7.1L141.83,108a8,8,0,0,0,6.14,6.14l26.35,5.66a8,8,0,0,0,7.1-1.94l33.81-31.2A56.06,56.06,0,0,1,160,152Z',
+    footprints: 'M208.06,184H152a8,8,0,0,0-8,8v12a36,36,0,0,0,72.05,0V192A8,8,0,0,0,208.06,184Zm-8,20a20,20,0,0,1-40,0v-4h40ZM104,160h-56a8,8,0,0,0-8,8v12A36,36,0,0,0,112,180V168A8,8,0,0,0,104,160Zm-8,20a20,20,0,0,1-40,0v-4H96ZM76,16C64.36,16,53.07,26.31,44.2,45c-13.93,29.38-18.56,73,.29,96a8,8,0,0,0,6.2,2.93h50.55a8,8,0,0,0,6.2-2.93c18.85-23,14.22-66.65.29-96C98.85,26.31,87.57,16,76,16ZM97.15,128H54.78c-11.4-18.1-7.21-52.7,3.89-76.11C65.14,38.22,72.17,32,76,32s10.82,6.22,17.3,19.89C104.36,75.3,108.55,109.9,97.15,128Zm57.61,40h50.55a8,8,0,0,0,6.2-2.93c18.85-23,14.22-66.65.29-96C202.93,50.31,191.64,40,180,40s-22.89,10.31-31.77,29c-13.93,29.38-18.56,73,.29,96A8.05,8.05,0,0,0,154.76,168Zm8-92.11C169.22,62.22,176.25,56,180,56s10.82,6.22,17.29,19.89c11.1,23.41,15.29,58,3.9,76.11H158.85C147.45,133.9,151.64,99.3,162.74,75.89Z',
     mapPin: 'M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z',
     cards: 'M184,72H40A16,16,0,0,0,24,88V200a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V88A16,16,0,0,0,184,72Zm0,128H40V88H184V200ZM232,56V176a8,8,0,0,1-16,0V56H64a8,8,0,0,1,0-16H216A16,16,0,0,1,232,56Z',
     compass: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z',
@@ -825,12 +830,28 @@
     refreshRecommendedLayer();
   });
 
+  // 산책 기록 리스트(walk-history.html)에서 코스 모양 썸네일을 그릴 수 있게, 실제 걸은
+  // 경로도 같이 저장한다 — 다만 GPS 포인트를 다 저장하면(watchPosition은 초 단위로 찍힘)
+  // 금방 커지니, 썸네일 하나 그리는 데 필요한 정도로만 듬성듬성 줄인다(최대 60개점).
+  function simplifyRoute(coords, maxPoints) {
+    if (coords.length <= maxPoints) return coords.slice();
+    var step = Math.ceil(coords.length / maxPoints);
+    var out = [];
+    for (var i = 0; i < coords.length; i += step) out.push(coords[i]);
+    var last = coords[coords.length - 1];
+    if (out[out.length - 1][0] !== last[0] || out[out.length - 1][1] !== last[1]) out.push(last);
+    return out;
+  }
+
   // 카드 화면(card-story.html)이 읽어가도록 이번 산책 기록을 저장하고, 총 누적 거리/스트릭을
   // 계산해 돌려준다. GPS로 측정한 거리는 그대로 신뢰한다 — 치팅 방지용 필터는 넣지 않는다
   // (보상이 없어서 지킬 이유가 없다는 결정, PROJECT_CONTEXT.md 참고).
-  function saveWalkRecord(distanceKm, durationMin) {
+  function saveWalkRecord(distanceKm, durationMin, route) {
     var walks = loadWalks();
-    walks.push({ date: dateKey(new Date()), distanceKm: distanceKm, durationMin: durationMin });
+    walks.push({
+      date: dateKey(new Date()), distanceKm: distanceKm, durationMin: durationMin,
+      route: simplifyRoute(route, 60)
+    });
     localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
 
     var totalDistanceKm = walks.reduce(function (sum, w) { return sum + w.distanceKm; }, 0);
@@ -978,14 +999,15 @@
     if (routeCoords.length >= 2) {
       var distanceKm = computeRouteDistanceKm(routeCoords);
       var durationMin = Math.max(1, Math.round((Date.now() - walkStartTime) / 60000));
-      var result = saveWalkRecord(distanceKm, durationMin);
+      var result = saveWalkRecord(distanceKm, durationMin, routeCoords);
       statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째';
       cardLinkBtn.style.display = 'flex';
       positionRoutePanel(); // 카드 만들기 버튼이 다시 생기면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     } else {
       statusText.textContent = '산책 종료 (이동 기록 없음)';
     }
-    // TODO: 경로 저장/공유는 백엔드 연동 전까지 로컬에만 유지 (PROJECT_CONTEXT.md 참고)
+    // 경로 공유(다른 사용자에게 보여주기)는 백엔드 연동 전까지 보류 — 로컬 기록/썸네일 용도로만
+    // 저장한다(PROJECT_CONTEXT.md "서비스 다이어트" 참고). walk-history.html에서 씀.
   }
 
   pinBtn.addEventListener('click', function () {
