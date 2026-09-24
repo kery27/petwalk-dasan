@@ -894,8 +894,9 @@
   }
 
   // 카드 화면(card-story.html)이 읽어가도록 이번 산책 기록을 저장하고, 총 누적 거리/스트릭을
-  // 계산해 돌려준다. GPS로 측정한 거리는 그대로 신뢰한다 — 치팅 방지용 필터는 넣지 않는다
-  // (보상이 없어서 지킬 이유가 없다는 결정, PROJECT_CONTEXT.md 참고).
+  // 계산해 돌려준다. GPS로 측정한 거리는 그대로 신뢰한다 — 치팅 방지용 필터는 아직 없다.
+  // 이 기록이 card-reward.html의 보상 진행도로도 쓰여서 조작 가능성이 생겼다(2026-09-24 보상
+  // 재도입, PROJECT_CONTEXT.md "결정 번복" 참고) — 실제 사용자에게 열기 전에 다시 결정할 것.
   function saveWalkRecord(distanceKm, durationMin, route) {
     var walks = loadWalks();
     walks.push({
