@@ -215,6 +215,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
 <script src="card-shared.js?v=9"></script>
+<script src="reward-rules.js?v=2"></script>
 <script>
 (function () {
   var CS = window.CardShared;
@@ -224,48 +225,16 @@
   var WALKS_KEY = 'petwalk_walks';
   var PROFILE_KEY = 'petwalk_profile';
 
-  // ── 보상 규칙 (2026-09-24, "보상 폐기" 결정을 뒤집고 다시 도입 — PROJECT_CONTEXT.md 참고) ──
-  // 숫자를 조정할 땐 이 블록만 고치면 된다.
-  var FRAME_TIERS = [
-    { name: '종이', minWalks: 0,  stops: ['#cbbba5', '#e6dac8', '#cbbba5'], width: 8,  ring: '#d8cbb8' },
-    { name: '나무', minWalks: 5,  stops: ['#6f4a2a', '#b98a55', '#8a5f36'], width: 12, ring: '#a0703f' },
-    { name: '은',   minWalks: 15, stops: ['#7d858c', '#e3e7ea', '#ffffff', '#e3e7ea', '#7d858c'], width: 14, ring: '#b8c0c6' },
-    { name: '금',   minWalks: 30, stops: ['#c99a3a', '#f0cf7a', '#fff6d9', '#f0cf7a', '#c99a3a'], width: 16, ring: '#e2b45a' }
-  ];
-  var SLOT_RULES = { skill: 1, passive: 3 }; // 칸이 열리는 누적 산책 횟수
-
-  // ⚠️ 좌표는 index.html RECOMMENDED_ROUTES와 같은 예시값(실제 위치 확인 전) — 실제 장소 좌표로
-  // 보정할 때 두 곳을 같이 고쳐야 한다. 산책 경로 점 중 하나라도 radiusKm 안에 들어오면 방문으로 친다.
-  var PLACES = [
-    { id: 'outlet',    name: '아울렛',     badge: '#아울렛_발도장',   center: [37.5988, 127.1467], radiusKm: 0.12, kind: 'building' },
-    { id: 'central',   name: '다산 중앙공원', badge: '#중앙공원_발도장', center: [37.6007, 127.1484], radiusKm: 0.15, kind: 'park' },
-    { id: 'waterside', name: '수변공원',    badge: '#수변공원_발도장', center: [37.5990, 127.1521], radiusKm: 0.15, kind: 'water' }
-  ];
+  var RR = window.RewardRules;
+  var FRAME_TIERS = RR.FRAME_TIERS, SLOT_RULES = RR.SLOT_RULES, PLACES = RR.PLACES;
+  var tierFor = RR.tierFor, nextTier = RR.nextTier, nextGoalText = RR.nextGoalText;
 
   function loadJSON(key) {
     try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
   }
 
-  function distanceKm(a, b) {
-    var R = 6371, toRad = Math.PI / 180;
-    var dLat = (b[0] - a[0]) * toRad, dLng = (b[1] - a[1]) * toRad;
-    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(a[0] * toRad) * Math.cos(b[0] * toRad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    return 2 * R * Math.asin(Math.sqrt(h));
-  }
-
   function realProgress() {
-    var walks = loadJSON(WALKS_KEY) || [];
-    var visited = {};
-    walks.forEach(function (w) {
-      (w.route || []).forEach(function (p) {
-        PLACES.forEach(function (pl) {
-          if (!visited[pl.id] && distanceKm(p, pl.center) <= pl.radiusKm) visited[pl.id] = true;
-        });
-      });
-    });
-    var km = walks.reduce(function (s, w) { return s + (w.distanceKm || 0); }, 0);
-    return { walks: walks.length, km: km, visited: visited };
+    return RR.computeProgress(loadJSON(WALKS_KEY));
   }
 
   var simToggle = document.getElementById('sim-toggle');
@@ -286,29 +255,6 @@
     });
     var n = parseInt(simWalks.value, 10);
     return { walks: n, km: n * 1.4, visited: visited, simulated: true };
-  }
-
-  function tierFor(walks) {
-    var t = FRAME_TIERS[0];
-    FRAME_TIERS.forEach(function (tier) { if (walks >= tier.minWalks) t = tier; });
-    return t;
-  }
-  function nextTier(walks) {
-    for (var i = 0; i < FRAME_TIERS.length; i++) if (FRAME_TIERS[i].minWalks > walks) return FRAME_TIERS[i];
-    return null;
-  }
-
-  function nextGoalText(p) {
-    var goals = [];
-    if (p.walks < SLOT_RULES.skill) goals.push({ left: SLOT_RULES.skill - p.walks, what: '스킬 칸이 열려요' });
-    if (p.walks < SLOT_RULES.passive) goals.push({ left: SLOT_RULES.passive - p.walks, what: '특성 칸이 열려요' });
-    var nt = nextTier(p.walks);
-    if (nt) goals.push({ left: nt.minWalks - p.walks, what: nt.name + ' 테두리가 돼요' });
-    goals.sort(function (a, b) { return a.left - b.left; });
-    if (goals.length) return '산책 ' + goals[0].left + '회 더 하면 ' + goals[0].what;
-    var remaining = PLACES.filter(function (pl) { return !p.visited[pl.id]; });
-    if (remaining.length) return remaining[0].name + '에 가면 새 발도장을 받아요';
-    return '모든 보상을 모았어요';
   }
 
   // ── 폼 ──

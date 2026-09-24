@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="reward-rules.js?v=2"></script>
 
 <!-- 본문용 Pretendard(한국어 웹에서 널리 쓰이는 서체, 시스템 기본 서체보다 완성도 높음)
      + 타이틀/브랜드 포인트용 Black Han Sans(카드 화면들과 이미 공유 중인 서체,
@@ -205,6 +206,28 @@
     transition: opacity 0.22s ease, transform 0.22s ease;
   }
   .route-panel.is-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+  /* 산책 종료 직후 이번에 얻은 보상을 알려주는 패널 — route-panel과 같은 자리에 뜨되, 코스
+     패널이 열려 있으면 그 위로 쌓인다(positionRoutePanel()이 둘 다 배치). */
+  .reward-panel {
+    position: absolute; bottom: 92px; left: 14px; right: 14px; z-index: 11;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
+    padding: 14px 16px; font-size: 13px; box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.16);
+    opacity: 0; transform: translateY(10px) scale(0.98); pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .reward-panel.is-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .reward-panel .reward-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .reward-panel .reward-title { font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+  .reward-panel .reward-title .icon { color: var(--accent); }
+  .reward-panel .reward-close {
+    border: none; background: none; color: var(--ink-soft); cursor: pointer; padding: 4px;
+    display: flex; align-items: center;
+  }
+  .reward-panel ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.7; font-weight: 700; }
+  .reward-panel .reward-next { margin: 6px 0 0; color: var(--ink-soft); line-height: 1.5; }
+  .reward-panel .reward-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .reward-panel .reward-actions .btn { padding: 10px 16px; font-size: 13px; text-decoration: none; }
   .route-panel-row { display: flex; align-items: center; gap: 12px; }
   .route-panel label {
     white-space: nowrap; font-weight: 700; color: var(--ink);
@@ -278,7 +301,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .my-location-dot::after { animation: none; display: none; }
-    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel { transition: none; }
+    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel { transition: none; }
   }
 </style>
 </head>
@@ -299,8 +322,7 @@
       <span class="icon" data-icon="list"></span>
     </button>
     <div class="menu-dropdown" id="menu-dropdown">
-      <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드</span></a>
-      <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
+      <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드</span></a>      <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
       <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
@@ -317,6 +339,18 @@
   <div class="route-panel-row">
     <label for="dog-size-select"><span class="icon" data-icon="dog"></span>우리 아이 크기</label>
     <select id="dog-size-select"></select>
+  </div>
+</div>
+
+<div class="reward-panel" id="reward-panel" role="status" aria-live="polite">
+  <div class="reward-head">
+    <span class="reward-title" id="reward-title"><span class="icon" data-icon="cards"></span><span id="reward-title-text"></span></span>
+    <button type="button" class="reward-close" id="reward-close" aria-label="닫기"><span class="icon" data-icon="x"></span></button>
+  </div>
+  <ul id="reward-list"></ul>
+  <p class="reward-next" id="reward-next"></p>
+  <div class="reward-actions">
+    <a class="btn btn-secondary" href="card-reward.html">보상 카드 보기</a>
   </div>
 </div>
 
@@ -359,7 +393,8 @@
     stop: 'M200,40H56A16,16,0,0,0,40,56V200a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,160H56V56H200V200Z',
     plus: 'M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z',
     minus: 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z',
-    trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z'
+    trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z',
+    x: 'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z'
   };
   function svgIcon(name, size) {
     var d = ICON_PATHS[name];
@@ -393,8 +428,12 @@
   // 좁은 화면(모바일)에서 2줄로 줄바꿈되며 높이가 커진다. route-panel의 bottom 값을
   // CSS에 고정값으로 박아두면 하단바가 늘어난 만큼을 못 따라가서 겹쳐 보였음 — 대신
   // 하단바의 실측 높이(offsetHeight)를 재서 그 바로 위로 매번 다시 배치한다.
+  var rewardPanel = document.getElementById('reward-panel');
   function positionRoutePanel() {
-    routePanel.style.bottom = (bottomBar.offsetHeight + 28) + 'px'; // 28 = 하단바 자체 bottom(18) + 여백(10)
+    var base = bottomBar.offsetHeight + 28; // 28 = 하단바 자체 bottom(18) + 여백(10)
+    routePanel.style.bottom = base + 'px';
+    var routeOpen = routePanel.classList.contains('is-visible');
+    rewardPanel.style.bottom = (routeOpen ? base + routePanel.offsetHeight + 10 : base) + 'px';
   }
   positionRoutePanel();
   window.addEventListener('resize', positionRoutePanel);
@@ -427,6 +466,7 @@
 
   var map, watchId = null, walking = false, walkStartTime = null;
   var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
+  var routeSamples = []; // routeCoords와 같은 점 + GPS 측정 시각 — 구간 속도 계산용
   var routeLine;
   var myLocationMarker = null;
   // CLAUDE.md 규칙(권한 요청 전 이유 설명 필수)을 지키되, "한 번 동의했는데 새로고침마다
@@ -446,8 +486,10 @@
   // 산책 루트 추천 (2026-09-07 추가): 다른 유저 데이터 기반 추천은 회원/백엔드가 필요해서
   // "서비스 다이어트"로 보류된 B 영역에 해당함(PROJECT_CONTEXT.md 참고) — 대신 다산동 공원
   // 몇 곳을 큐레이션한 루트를 지도에 얹는 방식으로 프로토타입에서도 바로 검증 가능하게 함.
-  // ⚠️ waypoints는 지도 중심(37.5985, 127.1467) 주변의 예시값이고, 실제 다산 중앙공원/수변공원
-  // 좌표는 아직 확인 전이라 추후 보정이 필요하다(index.html 상단 initMap 주석과 동일한 상황).
+  // 중앙공원/수변공원 루트는 OSM에서 확인한 실제 공원 중심(2026-09-25)에 맞춰 옮긴 사각 루프라
+  // 공원 산책로를 정확히 따라가진 않는다 — 정확한 코스는 course-builder.html로 직접 그려야 한다.
+  // 아울렛 루트는 사용자가 준 네이버 지도 좌표(스페이스원)로 옮긴 작은 마름모라 건물을 실제로
+  // 한 바퀴 도는 모양은 아니다 — 이것도 course-builder.html로 그려야 정확해진다.
   // 세 루트는 일부러 짧음/중간/김 순으로 거리 차이를 뚜렷하게 둠 — 전부 비슷하게 짧으면
   // 아래 견종 크기별 "다소 길 수 있는 코스" 경고가 실제로 갈릴 일이 없어서 기능 확인이 안 됨.
   //
@@ -455,35 +497,39 @@
   // 경유점일 뿐, 화면에 그리는 선 자체가 아니다 — 실제 그려지는 좌표(geometry)는 아래
   // fetchRoadRoute()가 OSRM에서 받아와 채운다(영역/직선이 아니라 진짜 도로를 따라가게 하기 위함).
   //
-  // 모든 waypoints는 DEFAULT_CENTER를 기준으로 설계된 상대적인 도형(짧음/중간/긴 루프)이다.
-  // "내 위치 주변으로 추천"이 되려면 이 도형을 사용자의 실제 위치로 옮겨야 하는데(아래
+  // 각 waypoints는 route.origin을 기준으로 한 상대적인 도형(짧음/중간/긴 루프)이기도 하다.
+  // "내 위치 주변으로 추천"일 때는 origin이 내 위치에 오도록 도형을 통째로 옮기는데(아래
   // anchorWaypoints 참고), 그러면 "아울렛 둘레길"/"다산 중앙공원" 같은 다산동 지명이 실제
   // 위치와 안 맞게 된다 — 그래서 실제 위치 기준일 때는 genericName/genericDesc(지명 없는
-  // 설명)를 대신 쓴다.
-  var DEFAULT_CENTER = [37.5985, 127.1467]; // initMap()의 지도 초기 중심과 동일 — 예시 좌표 기준점
+  // 설명)를 대신 쓴다. 루트마다 origin을 따로 두는 이유: 지명 루트는 실제 공원 위치에 두면서도,
+  // 내 위치 기준으로 옮겼을 때 도형이 내 위치에서 멀리 떨어지지 않게 하기 위함.
+  var DEFAULT_CENTER = [37.6212, 127.1525]; // 지도 초기 중심 — 아울렛·다산중앙공원·다산수변공원의 가운데
   var RECOMMENDED_ROUTES = [
     {
       name: '아울렛 둘레길', genericName: '짧은 코스',
       desc: '짧게 한 바퀴, 시간 없을 때 추천', genericDesc: '짧게 한 바퀴, 시간 없을 때 추천',
+      origin: [37.61603, 127.15268],
       waypoints: [
-        [37.5985, 127.1467], [37.5988, 127.1463], [37.5991, 127.1467],
-        [37.5988, 127.1471], [37.5985, 127.1467]
+        [37.61603, 127.15268], [37.61633, 127.15228], [37.61663, 127.15268],
+        [37.61633, 127.15308], [37.61603, 127.15268]
       ]
     },
     {
       name: '다산 중앙공원 한 바퀴', genericName: '중간 코스',
       desc: '공원을 크게 도는 평탄한 코스', genericDesc: '넓게 한 바퀴 도는 평탄한 코스',
+      origin: [37.62105, 127.15787],
       waypoints: [
-        [37.5993, 127.1466], [37.6022, 127.1466], [37.6022, 127.1503],
-        [37.5993, 127.1503], [37.5993, 127.1466]
+        [37.62185, 127.15777], [37.62475, 127.15777], [37.62475, 127.16147],
+        [37.62185, 127.16147], [37.62185, 127.15777]
       ]
     },
     {
       name: '수변공원 산책로', genericName: '긴 코스',
       desc: '물길을 따라 걷는 여유로운 장거리 코스', genericDesc: '여유롭게 걷는 장거리 코스',
+      origin: [37.62351, 127.13989],
       waypoints: [
-        [37.5965, 127.1490], [37.6014, 127.1490], [37.6014, 127.1552],
-        [37.5965, 127.1552], [37.5965, 127.1490]
+        [37.62151, 127.14219], [37.62641, 127.14219], [37.62641, 127.14839],
+        [37.62151, 127.14839], [37.62151, 127.14219]
       ]
     }
   ];
@@ -654,6 +700,33 @@
     return total;
   }
 
+  // 최소한의 조작 방지(2026-09-25) — 완벽히 막는 게 아니라 "명백히 산책이 아닌 것"만 거른다.
+  // 실제 산책이 잘못 걸러지지 않도록 기준은 보수적으로 잡았다(반려견과 뛰는 속도 ~10km/h는 통과).
+  var WALK_RULES = {
+    maxAccuracyM: 50,      // 이보다 부정확한 GPS 점은 버림(튀는 점 때문에 거리가 부풀려지는 것 방지)
+    maxWalkSpeedKmh: 15,   // 이보다 빠른 구간(차/자전거)은 산책 거리·발도장에서 뺌
+    minRewardMinutes: 5,   // 이보다 짧은 산책은 기록만 남고 보상 횟수엔 안 들어감
+    minRewardKm: 0.2
+  };
+
+  // samples: [{ c: [lat,lng], t: ms }] → 걷는 속도 구간만 합친 거리와 그 구간의 점들
+  function analyzeWalk(samples) {
+    var walkKm = 0, fastKm = 0, walkingPoints = [];
+    for (var i = 1; i < samples.length; i++) {
+      var a = samples[i - 1], b = samples[i];
+      var km = haversineKm(a.c, b.c);
+      var hours = (b.t - a.t) / 3600000;
+      if (hours <= 0) continue;
+      if (km / hours > WALK_RULES.maxWalkSpeedKmh) {
+        fastKm += km;
+      } else {
+        walkKm += km;
+        walkingPoints.push(a.c, b.c);
+      }
+    }
+    return { walkKm: walkKm, fastKm: fastKm, walkingPoints: walkingPoints };
+  }
+
   // Chaikin 코너 커팅(각 변의 25%/75% 지점에 점을 찍어 꼭짓점을 대체 → 반복할수록 둥글게 깎임).
   // 아래 fetchRoadRoute()가 실패했을 때만 쓰는 대체용 — 실제 도로 경로를 못 받아오면 최소한
   // 직각으로 꺾이는 사각형 대신 둥근 근사 경로라도 보여준다.
@@ -696,13 +769,13 @@
       .finally(function () { clearTimeout(timeoutId); });
   }
 
-  // route.waypoints는 DEFAULT_CENTER(다산동 예시 좌표)를 기준으로 설계된 상대적 도형이다.
-  // anchor가 있으면(=실제 위치를 받아왔으면) 그 도형을 통째로 anchor 위치로 평행이동시켜서,
+  // route.waypoints는 route.origin을 기준으로 한 상대적 도형이다.
+  // anchor가 있으면(=실제 위치를 받아왔으면) origin이 anchor에 오도록 도형을 통째로 평행이동시켜서,
   // "다산동 예시 루트"가 아니라 "내 위치 근처의 같은 모양 루트"가 되게 한다.
-  function anchorWaypoints(waypoints, anchor) {
+  function anchorWaypoints(waypoints, anchor, origin) {
     if (!anchor) return waypoints;
-    var dLat = anchor[0] - DEFAULT_CENTER[0];
-    var dLng = anchor[1] - DEFAULT_CENTER[1];
+    var dLat = anchor[0] - origin[0];
+    var dLng = anchor[1] - origin[1];
     return waypoints.map(function (p) { return [p[0] + dLat, p[1] + dLng]; });
   }
 
@@ -713,7 +786,7 @@
     if (route.geometry) return Promise.resolve(route.geometry);
     // 직접 그린 코스(isAuthored)는 실제 좌표를 찍은 것이라 옮기지 않는다 — anchorWaypoints는
     // 다산동 예시 루트(가짜 기준점 주변 상대 도형)에만 적용.
-    var waypoints = route.isAuthored ? route.waypoints : anchorWaypoints(route.waypoints, routeAnchor);
+    var waypoints = route.isAuthored ? route.waypoints : anchorWaypoints(route.waypoints, routeAnchor, route.origin);
     return fetchRoadRoute(waypoints).then(function (geo) {
       route.isFallback = !geo;
       route.geometry = geo || chaikinSmooth(waypoints, 3);
@@ -852,6 +925,7 @@
           routeBtnLabel.textContent = '추천 루트 숨기기';
           positionRoutePanel(); // 버튼 텍스트가 막 바뀐 뒤라 하단바 줄바꿈이 달라졌을 수 있음
           routePanel.classList.add('is-visible');
+          positionRoutePanel(); // 보상 패널이 떠 있으면 코스 패널 위로 올려야 함
         }
       });
     } else {
@@ -859,6 +933,7 @@
       recommendedLayer = null;
       routeBtnLabel.textContent = '추천 루트';
       routePanel.classList.remove('is-visible');
+      positionRoutePanel();
     }
   }
 
@@ -893,15 +968,17 @@
     return out;
   }
 
-  // 카드 화면(card-story.html)이 읽어가도록 이번 산책 기록을 저장하고, 총 누적 거리/스트릭을
-  // 계산해 돌려준다. GPS로 측정한 거리는 그대로 신뢰한다 — 치팅 방지용 필터는 아직 없다.
-  // 이 기록이 card-reward.html의 보상 진행도로도 쓰여서 조작 가능성이 생겼다(2026-09-24 보상
-  // 재도입, PROJECT_CONTEXT.md "결정 번복" 참고) — 실제 사용자에게 열기 전에 다시 결정할 것.
-  function saveWalkRecord(distanceKm, durationMin, route) {
+  // 카드 화면(card-story.html, card-reward.html)이 읽어가도록 이번 산책 기록을 저장하고, 총 누적
+  // 거리/스트릭을 계산해 돌려준다. route는 썸네일용 전체 경로, stampRoute는 걷는 속도 구간의
+  // 점만 모은 것(발도장 판정용 — 차 타고 공원 옆을 지나가도 도장이 안 찍히게).
+  // rewardEligible이 false면 기록은 남지만 card-reward.html의 보상 횟수에는 안 들어간다.
+  function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible) {
     var walks = loadWalks();
     walks.push({
       date: dateKey(new Date()), distanceKm: distanceKm, durationMin: durationMin,
-      route: simplifyRoute(route, 60)
+      route: simplifyRoute(route, 60),
+      stampRoute: stampRoute.length ? simplifyRoute(stampRoute, 60) : [],
+      rewardEligible: rewardEligible
     });
     localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
 
@@ -926,7 +1003,7 @@
   // PROJECT_CONTEXT.md "지도 API 변경" 참고) → 가입/토큰 없는 Leaflet + OpenStreetMap으로 대체.
   function initMap() {
     map = L.map('map', { zoomControl: false })
-      .setView([37.5985, 127.1467], 15); // 다산동 아웃렛 대략 좌표 (정확한 좌표는 추후 확인 필요)
+      .setView(DEFAULT_CENTER, 15);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -1003,6 +1080,30 @@
     );
   }
 
+  // 산책 종료 직후 보상 알림(2026-09-25) — 보상 카드 화면에 직접 들어가야만 뭐가 열렸는지 알 수
+  // 있어서 보상이 있어도 체감이 안 된다는 문제 때문에 추가. 규칙은 reward-rules.js 하나에서만 관리.
+  function showRewardPanel(before, after, eligible) {
+    var unlocks = eligible ? window.RewardRules.newUnlocks(before, after) : [];
+    var listEl = document.getElementById('reward-list');
+    listEl.innerHTML = '';
+    unlocks.forEach(function (text) {
+      var li = document.createElement('li');
+      li.textContent = text;
+      listEl.appendChild(li);
+    });
+    listEl.style.display = unlocks.length ? '' : 'none';
+    document.getElementById('reward-title-text').textContent = !eligible
+      ? '이번 산책은 보상에서 빠졌어요'
+      : (unlocks.length ? '새 보상을 받았어요!' : '산책 ' + after.walks + '회째 기록했어요');
+    document.getElementById('reward-next').textContent = !eligible
+      ? '5분·200m 이상 걸으면 보상 횟수에 들어가요.'
+      : '다음 보상: ' + window.RewardRules.nextGoalText(after);
+    rewardPanel.classList.add('is-visible');
+    positionRoutePanel();
+  }
+  function hideRewardPanel() { rewardPanel.classList.remove('is-visible'); }
+  document.getElementById('reward-close').addEventListener('click', hideRewardPanel);
+
   walkBtn.addEventListener('click', function () {
     if (!walking) startWalk(); else stopWalk();
   });
@@ -1013,6 +1114,8 @@
       return;
     }
     routeCoords = [];
+    routeSamples = [];
+    hideRewardPanel();
     routeLine.setLatLngs(routeCoords);
     walking = true;
     walkStartTime = Date.now();
@@ -1025,8 +1128,10 @@
 
     watchId = navigator.geolocation.watchPosition(
       function (pos) {
+        if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) return;
         var coord = [pos.coords.latitude, pos.coords.longitude];
         routeCoords.push(coord);
+        routeSamples.push({ c: coord, t: pos.timestamp });
         routeLine.setLatLngs(routeCoords);
         map.panTo(coord, { animate: true, duration: 0.5 });
       },
@@ -1048,10 +1153,17 @@
     }
 
     if (routeCoords.length >= 2) {
-      var distanceKm = computeRouteDistanceKm(routeCoords);
+      var progressBefore = window.RewardRules.computeProgress(loadWalks());
+      var analysis = analyzeWalk(routeSamples);
+      var distanceKm = analysis.walkKm;
       var durationMin = Math.max(1, Math.round((Date.now() - walkStartTime) / 60000));
-      var result = saveWalkRecord(distanceKm, durationMin, routeCoords);
-      statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째';
+      var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
+      var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible);
+      var note = '';
+      if (analysis.fastKm >= 0.05) note += ' · 빠른 이동 ' + analysis.fastKm.toFixed(1) + 'km 제외';
+      if (!rewardEligible) note += ' · ' + WALK_RULES.minRewardMinutes + '분·' + (WALK_RULES.minRewardKm * 1000) + 'm 미만이라 보상 제외';
+      statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째' + note;
+      showRewardPanel(progressBefore, window.RewardRules.computeProgress(loadWalks()), rewardEligible);
       cardLinkBtn.style.display = 'flex';
       positionRoutePanel(); // 카드 만들기 버튼이 다시 생기면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     } else {

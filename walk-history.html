@@ -75,6 +75,8 @@
     font-variant-numeric: tabular-nums;
   }
   .info .stats b { color: var(--ink); font-weight: 700; }
+  /* 5분·200m 미만 산책 — index.html WALK_RULES 참고 */
+  .info .stats .no-reward { color: var(--ink-soft); background: var(--accent-tint); border-radius: 6px; padding: 0 6px; font-size: 11px; }
 
   .empty {
     text-align: center; padding: 60px 20px; color: var(--ink-soft);
@@ -218,7 +220,8 @@
           (dayStreak > 1 ? '<span class="streak">연속 ' + dayStreak + '일째</span>' : '') + '</div>' +
           '<div class="stats"><span><b>' + w.distanceKm.toFixed(1) + 'km</b></span>' +
           '<span>' + w.durationMin + '분</span>' +
-          '<span>' + pace(w.distanceKm, w.durationMin) + '</span></div>' +
+          '<span>' + pace(w.distanceKm, w.durationMin) + '</span>' +
+          (w.rewardEligible === false ? '<span class="no-reward">보상 제외</span>' : '') + '</div>' +
         '</div>';
       listEl.appendChild(card);
     });
