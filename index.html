@@ -84,6 +84,18 @@
     max-width: calc(100% - 54px);
   }
   .title-chip .icon { color: var(--accent); }
+  /* 산책 중 기록 끊김/화면 켜두기 안내 — 제목 칩 바로 아래에 잠깐 떴다 사라진다 */
+  .walk-notice {
+    position: absolute; top: 64px; left: 14px; z-index: 10; max-width: min(340px, calc(100% - 82px));
+    display: flex; align-items: flex-start; gap: 8px;
+    background: var(--panel); border: 1px solid var(--warn); border-radius: 14px;
+    padding: 10px 12px; font-size: 13px; line-height: 1.5; font-weight: 600; color: var(--ink);
+    box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.15);
+    opacity: 0; transform: translateY(-6px); pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .walk-notice.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .walk-notice .icon { color: var(--warn); flex-shrink: 0; margin-top: 1px; }
   .title-chip .title {
     font-family: 'Black Han Sans', 'Pretendard', sans-serif;
     font-size: 16px; letter-spacing: -0.01em; white-space: nowrap;
@@ -320,7 +332,7 @@
   @media (prefers-reduced-motion: reduce) {
     .footprint svg { animation: none; }
     .my-location-dot::after { animation: none; display: none; }
-    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel { transition: none; }
+    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel, .walk-notice { transition: none; }
   }
 </style>
 </head>
@@ -351,6 +363,10 @@
       <a href="course-builder.html" class="tool-item"><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
     </div>
   </div>
+</div>
+
+<div class="walk-notice" id="walk-notice" role="status" aria-live="polite">
+  <span class="icon" data-icon="warning"></span><span id="walk-notice-text"></span>
 </div>
 
 <div class="route-panel" id="route-panel">
@@ -1092,13 +1108,15 @@
   // 거리/스트릭을 계산해 돌려준다. route는 썸네일용 전체 경로, stampRoute는 걷는 속도 구간의
   // 점만 모은 것(발도장 판정용 — 차 타고 공원 옆을 지나가도 도장이 안 찍히게).
   // rewardEligible이 false면 기록은 남지만 card-reward.html의 보상 횟수에는 안 들어간다.
-  function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible) {
+  // gapMin: 화면 꺼짐 등으로 GPS 기록이 끊긴 시간(분) — 정보용, 보상 판정엔 안 씀
+  function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible, gapMin) {
     var walks = loadWalks();
     walks.push({
       date: dateKey(new Date()), distanceKm: distanceKm, durationMin: durationMin,
       route: simplifyRoute(route, 60),
       stampRoute: stampRoute.length ? simplifyRoute(stampRoute, 60) : [],
-      rewardEligible: rewardEligible
+      rewardEligible: rewardEligible,
+      gapMin: gapMin || 0
     });
     localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
 
@@ -1231,6 +1249,42 @@
     if (!walking) startWalk(); else stopWalk();
   });
 
+  // 화면 꺼짐 대응(2026-09-26) — 모바일 브라우저는 화면이 꺼지거나 다른 앱으로 넘어가면
+  // watchPosition이 멈춘다(PWA 한계, PROJECT_CONTEXT.md "결정된 사항" 제약 참고). 그래서
+  // 1) 산책 중엔 Wake Lock으로 화면이 저절로 꺼지지 않게 막고(탭이 가려지면 브라우저가 풀어버리므로
+  //    다시 보일 때 재요청), 2) 그래도 끊겼으면 GPS 점 사이 시간 간격으로 알아채서 알려준다.
+  //    끊긴 구간은 앞뒤 점을 직선으로 이어 거리에 넣고(실제보다 짧게 잡힘), 발자국은 안 찍는다.
+  var GAP_MS = 60 * 1000; // GPS 점 사이가 이보다 벌어지면 "기록이 끊겼다"고 본다
+  var wakeLock = null, walkGapMs = 0, noticeTimer = null;
+  var walkNotice = document.getElementById('walk-notice');
+
+  function showWalkNotice(text) {
+    document.getElementById('walk-notice-text').textContent = text;
+    walkNotice.classList.add('is-visible');
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(function () { walkNotice.classList.remove('is-visible'); }, 8000);
+  }
+  walkNotice.addEventListener('click', function () { walkNotice.classList.remove('is-visible'); });
+
+  function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return Promise.resolve(false);
+    return navigator.wakeLock.request('screen').then(function (lock) {
+      wakeLock = lock;
+      lock.addEventListener('release', function () { if (wakeLock === lock) wakeLock = null; });
+      return true;
+    }).catch(function (err) {
+      console.warn('화면 켜두기 요청 실패:', err.message);
+      return false;
+    });
+  }
+  function releaseWakeLock() {
+    if (wakeLock) wakeLock.release().catch(function () {});
+    wakeLock = null;
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (walking && document.visibilityState === 'visible' && !wakeLock) requestWakeLock();
+  });
+
   function startWalk() {
     if (!navigator.geolocation) {
       alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
@@ -1241,7 +1295,11 @@
     hideRewardPanel();
     routeLine.setLatLngs(routeCoords);
     resetFootprints();
+    walkGapMs = 0;
     walking = true;
+    requestWakeLock().then(function (ok) {
+      if (!ok && walking) showWalkNotice('화면이 꺼지면 기록이 멈춰요. 산책하는 동안 화면을 켜두세요.');
+    });
     walkStartTime = Date.now();
     walkIcon.innerHTML = svgIcon('stop', 18);
     walkBtn.querySelector('.btn-label').textContent = '산책 종료';
@@ -1258,7 +1316,12 @@
         routeSamples.push({ c: coord, t: pos.timestamp });
         if (routeSamples.length >= 2) {
           var prev = routeSamples[routeSamples.length - 2], cur = routeSamples[routeSamples.length - 1];
-          addFootprints(prev, cur, isFastSegment(prev, cur));
+          var gap = cur.t - prev.t;
+          if (gap > GAP_MS) {
+            walkGapMs += gap;
+            showWalkNotice('약 ' + Math.max(1, Math.round(gap / 60000)) + '분 동안 기록이 끊겼어요. 그 구간은 직선으로 이어져요.');
+          }
+          addFootprints(prev, cur, gap > GAP_MS || isFastSegment(prev, cur));
         }
         routeLine.setLatLngs(routeCoords);
         map.panTo(coord, { animate: true, duration: 0.5 });
@@ -1275,6 +1338,8 @@
     walkIcon.innerHTML = svgIcon('play', 18);
     walkBtn.querySelector('.btn-label').textContent = '산책 시작';
     pinBtn.disabled = true;
+    releaseWakeLock();
+    walkNotice.classList.remove('is-visible');
     if (watchId !== null) {
       navigator.geolocation.clearWatch(watchId);
       watchId = null;
@@ -1286,8 +1351,10 @@
       var distanceKm = analysis.walkKm;
       var durationMin = Math.max(1, Math.round((Date.now() - walkStartTime) / 60000));
       var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
-      var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible);
+      var gapMin = Math.round(walkGapMs / 60000);
+      var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, gapMin);
       var note = '';
+      if (gapMin >= 1) note += ' · 기록 끊김 ' + gapMin + '분';
       if (analysis.fastKm >= 0.05) note += ' · 빠른 이동 ' + analysis.fastKm.toFixed(1) + 'km 제외';
       if (!rewardEligible) note += ' · ' + WALK_RULES.minRewardMinutes + '분·' + (WALK_RULES.minRewardKm * 1000) + 'm 미만이라 보상 제외';
       statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째' + note;
