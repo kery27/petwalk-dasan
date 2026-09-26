@@ -1,9 +1,17 @@
 {
+  "id": "./index.html",
   "name": "산책 다이어리",
   "short_name": "산책다이어리",
+  "description": "다산동 반려동물 산책 기록",
+  "lang": "ko",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f7ede2",
   "theme_color": "#f7ede2",
-  "icons": []
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

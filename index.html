@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>산책 다이어리</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="산책다이어리">
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -114,6 +119,7 @@
     opacity: 0; transform: translateY(-6px) scale(0.98); pointer-events: none;
     transition: opacity 0.18s ease, transform 0.18s ease;
   }
+  .menu-dropdown a[hidden] { display: none; } /* 아래 display:flex가 hidden 속성을 덮지 않게 */
   .menu-dropdown.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
   .menu-dropdown a {
     display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
@@ -339,6 +345,7 @@
       <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드 만들기</span></a>
       <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
       <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
+      <a href="#" id="install-link" hidden><span class="icon" data-icon="plus"></span><span>홈 화면에 추가</span></a>
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
       <a href="course-builder.html" class="tool-item"><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
@@ -477,6 +484,42 @@
     if (!menuWrap.contains(e.target)) {
       menuDropdown.classList.remove('is-open');
       menuBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // "홈 화면에 추가"(2026-09-26) — 안드로이드/크롬은 브라우저가 주는 설치 창(beforeinstallprompt)을
+  // 띄우고, 아이폰 사파리는 그런 API가 없어서 공유 버튼 경로를 안내한다. 이미 홈 화면 앱으로
+  // 열었으면 메뉴에서 숨긴다. 서비스워커(sw.js)는 설치 조건 때문에 두는 것이고 캐싱은 안 함.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function (err) {
+      console.warn('서비스워커 등록 실패:', err);
+    });
+  }
+  var installLink = document.getElementById('install-link');
+  var deferredInstallPrompt = null;
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드 데스크톱 모드
+  installLink.hidden = isStandalone;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); // 브라우저 기본 배너 대신 메뉴에서 원할 때 띄운다
+    deferredInstallPrompt = e;
+  });
+  window.addEventListener('appinstalled', function () {
+    deferredInstallPrompt = null;
+    installLink.hidden = true;
+  });
+  installLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    menuDropdown.classList.remove('is-open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.finally(function () { deferredInstallPrompt = null; });
+    } else if (isIOS) {
+      alert('사파리 아래쪽의 공유 버튼(□↑)을 누르고 "홈 화면에 추가"를 선택하세요.');
+    } else {
+      alert('브라우저 메뉴(⋮)에서 "앱 설치" 또는 "홈 화면에 추가"를 선택하세요.');
     }
   });
 
