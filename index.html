@@ -299,7 +299,20 @@
     0% { transform: scale(0.4); opacity: 0.45; }
     100% { transform: scale(1.7); opacity: 0; }
   }
+  /* 발자국 잔상 — 걸은 길 뒤로 찍히는 🐾. 바깥 span은 진행 방향 회전+좌우 엇갈림(인라인 style),
+     안쪽 svg는 찍힐 때 톡 튀어나오는 모션만 담당(두 transform이 서로 덮어쓰지 않게 분리). */
+  .footprint { pointer-events: none; }
+  .footprint span { display: block; width: 14px; height: 14px; }
+  .footprint svg { display: block; fill: var(--accent); opacity: 0.85; animation: footprint-pop 0.35s ease-out; }
+  @keyframes footprint-pop {
+    0% { transform: scale(0.2); opacity: 0; }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 0.85; }
+  }
+  /* 줌아웃하면 발자국이 뭉개져서 점 덩어리가 되므로 가까이 볼 때만 보여주고, 멀리선 경로선만 */
+  .footprints-off .footprint { display: none; }
   @media (prefers-reduced-motion: reduce) {
+    .footprint svg { animation: none; }
     .my-location-dot::after { animation: none; display: none; }
     .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel { transition: none; }
   }
@@ -322,7 +335,9 @@
       <span class="icon" data-icon="list"></span>
     </button>
     <div class="menu-dropdown" id="menu-dropdown">
-      <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드</span></a>      <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
+      <a href="my-card.html"><span class="icon" data-icon="medal"></span><span>내 카드</span></a>
+      <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드 만들기</span></a>
+      <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
       <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
@@ -350,7 +365,7 @@
   <ul id="reward-list"></ul>
   <p class="reward-next" id="reward-next"></p>
   <div class="reward-actions">
-    <a class="btn btn-secondary" href="card-reward.html">보상 카드 보기</a>
+    <a class="btn btn-secondary" href="my-card.html">내 카드 보기</a>
   </div>
 </div>
 
@@ -388,6 +403,7 @@
     compass: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z',
     dog: 'M239.71,125l-16.42-88a16,16,0,0,0-19.61-12.58l-.31.09L150.85,40h-45.7L52.63,24.56l-.31-.09A16,16,0,0,0,32.71,37.05L16.29,125a15.77,15.77,0,0,0,9.12,17.52A16.26,16.26,0,0,0,32.12,144,15.48,15.48,0,0,0,40,141.84V184a40,40,0,0,0,40,40h96a40,40,0,0,0,40-40V141.85a15.5,15.5,0,0,0,7.87,2.16,16.31,16.31,0,0,0,6.72-1.47A15.77,15.77,0,0,0,239.71,125ZM32,128h0L48.43,40,90.5,52.37Zm144,80H136V195.31l13.66-13.65a8,8,0,0,0-11.32-11.32L128,180.69l-10.34-10.35a8,8,0,0,0-11.32,11.32L120,195.31V208H80a24,24,0,0,1-24-24V123.11L107.92,56h40.15L200,123.11V184A24,24,0,0,1,176,208Zm48-80L165.5,52.37,207.57,40,224,128ZM104,140a12,12,0,1,1-12-12A12,12,0,0,1,104,140Zm72,0a12,12,0,1,1-12-12A12,12,0,0,1,176,140Z',
     warning: 'M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z',
+    medal: 'M216,96A88,88,0,1,0,72,163.83V240a8,8,0,0,0,11.58,7.16L128,225l44.43,22.21A8.07,8.07,0,0,0,176,248a8,8,0,0,0,8-8V163.83A87.85,87.85,0,0,0,216,96ZM56,96a72,72,0,1,1,72,72A72.08,72.08,0,0,1,56,96ZM168,227.06l-36.43-18.21a8,8,0,0,0-7.16,0L88,227.06V174.37a87.89,87.89,0,0,0,80,0ZM128,152A56,56,0,1,0,72,96,56.06,56.06,0,0,0,128,152Zm0-96A40,40,0,1,1,88,96,40,40,0,0,1,128,56Z',
     pawPrint: 'M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80Zm0,40a12,12,0,1,1,12-12A12,12,0,0,1,212,120ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM44,120a12,12,0,1,1,12-12A12,12,0,0,1,44,120ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm0-40A12,12,0,1,1,80,60,12,12,0,0,1,92,48Zm72,40a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm0-40a12,12,0,1,1-12,12A12,12,0,0,1,164,48Zm23.12,100.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72ZM168,208a24,24,0,0,1-9.45-1.93,80.14,80.14,0,0,0-61.19,0,24,24,0,0,1-20.71-43.26,51.22,51.22,0,0,0,24.46-30.67,28,28,0,0,1,53.78,0,51.27,51.27,0,0,0,24.53,30.71A24,24,0,0,1,168,208Z',
     play: 'M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z',
     stop: 'M200,40H56A16,16,0,0,0,40,56V200a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,160H56V56H200V200Z',
@@ -727,6 +743,67 @@
     return { walkKm: walkKm, fastKm: fastKm, walkingPoints: walkingPoints };
   }
 
+  // 발자국 잔상(2026-09-26, PROJECT_CONTEXT.md "동화책 속 산책 지도" 2번) — 걸어간 길 뒤로 🐾가
+  // 일정 간격으로 좌우 엇갈려 찍힌다. 차/자전거 속도 구간(WALK_RULES)엔 안 찍어서 "걸은 곳"만 남는다.
+  var FOOTPRINT = { stepKm: 0.018, minZoom: 17 }; // 줌 17에서 약 20px 간격
+  var footprintLayer; // initMap에서 만듦
+  var footprintCarryKm = 0, footprintCount = 0;
+  var PAW_SVG = '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">' +
+    '<ellipse cx="10" cy="13.6" rx="4.6" ry="4"/><circle cx="3.9" cy="8.4" r="2"/>' +
+    '<circle cx="7.6" cy="4.6" r="2"/><circle cx="12.4" cy="4.6" r="2"/><circle cx="16.1" cy="8.4" r="2"/></svg>';
+
+  // 북쪽 0°, 시계 방향 — CSS rotate와 같은 방향이라 그대로 쓰면 발가락이 진행 방향을 향한다
+  function bearingDeg(a, b) {
+    var dx = (b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180);
+    var dy = b[0] - a[0];
+    return Math.atan2(dx, dy) * 180 / Math.PI;
+  }
+
+  function resetFootprints() {
+    footprintLayer.clearLayers();
+    footprintCarryKm = 0;
+    footprintCount = 0;
+  }
+
+  function placeFootprint(coord, angle) {
+    var side = footprintCount++ % 2 ? 4 : -4;
+    L.marker(coord, {
+      icon: L.divIcon({
+        className: 'footprint', iconSize: [14, 14], iconAnchor: [7, 7],
+        html: '<span style="transform: rotate(' + angle.toFixed(0) + 'deg) translateX(' + side + 'px)">' + PAW_SVG + '</span>'
+      }),
+      interactive: false, keyboard: false
+    }).addTo(footprintLayer);
+  }
+
+  // a → b 구간에 stepKm마다 발자국을 찍는다. 앞 구간에서 남은 거리(carry)를 이어받아서
+  // GPS 점 간격과 상관없이 발자국 간격이 일정하게 유지된다.
+  function addFootprints(a, b, isFast) {
+    var d = haversineKm(a.c, b.c);
+    if (isFast) { footprintCarryKm = 0; return; }
+    if (d === 0) return;
+    var angle = bearingDeg(a.c, b.c);
+    var next = FOOTPRINT.stepKm - footprintCarryKm;
+    while (next <= d) {
+      var f = next / d;
+      placeFootprint([a.c[0] + (b.c[0] - a.c[0]) * f, a.c[1] + (b.c[1] - a.c[1]) * f], angle);
+      next += FOOTPRINT.stepKm;
+    }
+    footprintCarryKm = d - (next - FOOTPRINT.stepKm);
+  }
+
+  function isFastSegment(a, b) {
+    var hours = (b.t - a.t) / 3600000;
+    return hours > 0 && haversineKm(a.c, b.c) / hours > WALK_RULES.maxWalkSpeedKmh;
+  }
+
+  // 발자국이 보이는 줌에선 경로선을 옅게 깔아 발자국이 주인공이 되게 하고, 줌아웃하면 선만 진하게
+  function updateFootprintVisibility() {
+    var show = map.getZoom() >= FOOTPRINT.minZoom;
+    map.getContainer().classList.toggle('footprints-off', !show);
+    routeLine.setStyle(show ? { opacity: 0.3, weight: 4 } : { opacity: 0.9, weight: 5 });
+  }
+
   // Chaikin 코너 커팅(각 변의 25%/75% 지점에 점을 찍어 꼭짓점을 대체 → 반복할수록 둥글게 깎임).
   // 아래 fetchRoadRoute()가 실패했을 때만 쓰는 대체용 — 실제 도로 경로를 못 받아오면 최소한
   // 직각으로 꺾이는 사각형 대신 둥근 근사 경로라도 보여준다.
@@ -1037,6 +1114,9 @@
     map.addControl(new LocateControl());
 
     routeLine = L.polyline([], { color: '#b8563a', weight: 5, opacity: 0.9 }).addTo(map);
+    footprintLayer = L.layerGroup().addTo(map);
+    map.on('zoomend', updateFootprintVisibility);
+    updateFootprintVisibility();
   }
 
   // silent가 true면(앱 시작 시 자동 호출) 실패해도 alert 없이 조용히 넘어간다 — 사용자가
@@ -1117,6 +1197,7 @@
     routeSamples = [];
     hideRewardPanel();
     routeLine.setLatLngs(routeCoords);
+    resetFootprints();
     walking = true;
     walkStartTime = Date.now();
     walkIcon.innerHTML = svgIcon('stop', 18);
@@ -1132,6 +1213,10 @@
         var coord = [pos.coords.latitude, pos.coords.longitude];
         routeCoords.push(coord);
         routeSamples.push({ c: coord, t: pos.timestamp });
+        if (routeSamples.length >= 2) {
+          var prev = routeSamples[routeSamples.length - 2], cur = routeSamples[routeSamples.length - 1];
+          addFootprints(prev, cur, isFastSegment(prev, cur));
+        }
         routeLine.setLatLngs(routeCoords);
         map.panTo(coord, { animate: true, duration: 0.5 });
       },

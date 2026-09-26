@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>내 카드</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  /* 실제 사용자가 보는 보상 카드 화면(2026-09-26). card-reward.html은 디자인 비교 도구라
+     편집 폼·가짜 진행도가 있지만, 여기는 "지금 내 카드가 어디까지 자랐나"만 보여준다.
+     카드 그림은 reward-card.js를 같이 쓴다. */
+  :root {
+    /* index.html/walk-history.html/profile.html과 동일한 색 토큰 */
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  body { padding: 16px 16px 32px; }
+  .wrap { max-width: 420px; margin: 0 auto; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 12px; text-decoration: none;
+    background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink);
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 800; font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+
+  .notice {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--accent-tint); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .notice a { flex-shrink: 0; color: var(--accent); font-weight: 700; text-decoration: none; }
+  .notice[hidden] { display: none; }
+
+  .side-toggle {
+    display: flex; gap: 4px; padding: 4px; margin: 0 auto 12px; width: max-content;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px;
+  }
+  .side-toggle button {
+    border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
+    padding: 7px 18px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .side-toggle button.active { background: var(--ink); color: #fff; }
+
+  .canvas-holder { display: flex; justify-content: center; }
+  #card-canvas {
+    width: 100%; max-width: 340px; cursor: pointer;
+    filter: drop-shadow(0 8px 18px rgba(var(--shadow-rgb), 0.18));
+  }
+  .canvas-hint { text-align: center; font-size: 11px; color: #a8977f; margin-top: 6px; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
+    padding: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.08);
+  }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+  .stats div + div { border-left: 1px solid var(--panel-border); }
+  .stats b { display: block; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 12px; color: var(--ink-soft); }
+
+  .next { margin-top: 14px; }
+  .next-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
+  .next-label small { color: var(--ink-soft); font-weight: 600; }
+  .bar { height: 10px; border-radius: 5px; background: #eadfce; margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
+
+  .places { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .places span {
+    font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
+    border: 1px dashed #c9b8a3; color: #a8977f;
+  }
+  .places span.got { border: 1px solid #e2b45a; background: #fff3d6; color: var(--ink); }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn {
+    flex: 1; border-radius: 999px; padding: 13px; font-family: inherit; font-size: 14px;
+    font-weight: 700; cursor: pointer;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+  .btn-secondary { background: var(--panel); color: var(--ink); border: 1px solid var(--panel-border); }
+  .btn-primary {
+    border: none; color: #fff; background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15), 0 6px 16px rgba(var(--shadow-rgb), 0.25);
+  }
+
+  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 14px 2px 0; }
+  @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html" title="지도로 돌아가기">←</a>
+    <h1>🏅 내 카드</h1>
+  </div>
+
+  <div class="notice" id="profile-notice" hidden>
+    <span>프로필에 사진과 이름을 넣으면 카드에 들어가요.</span>
+    <a href="profile.html">프로필 등록</a>
+  </div>
+
+  <div class="side-toggle" role="tablist">
+    <button type="button" id="side-front" class="active">앞면</button>
+    <button type="button" id="side-back">발도장 지도</button>
+  </div>
+  <div class="canvas-holder">
+    <canvas id="card-canvas" width="680" height="1000" aria-label="산책 보상 카드"></canvas>
+  </div>
+  <div class="canvas-hint">카드를 누르면 뒤집혀요</div>
+
+  <div class="panel">
+    <div class="stats">
+      <div><b id="stat-walks">0</b><span>산책</span></div>
+      <div><b id="stat-km">0.0</b><span>km</span></div>
+      <div><b id="stat-tier">종이</b><span>등급</span></div>
+    </div>
+    <div class="next">
+      <div class="next-label"><span id="tier-label"></span><small id="tier-left"></small></div>
+      <div class="bar"><i id="tier-bar"></i></div>
+    </div>
+    <div class="places" id="places"></div>
+    <p class="hint" id="next-goal"></p>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn btn-secondary" id="reroll-btn">스킬 다시 뽑기</button>
+    <button type="button" class="btn btn-primary" id="save-btn">이미지로 저장</button>
+  </div>
+  <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
+  5분·200m 미만 산책은 횟수에 들어가지 않아요.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
+<script src="card-shared.js?v=9"></script>
+<script src="reward-rules.js?v=2"></script>
+<script src="reward-card.js?v=1"></script>
+<script>
+(function () {
+  var CS = window.CardShared;
+  var RR = window.RewardRules;
+  var RC = window.RewardCard;
+  var canvas = document.getElementById('card-canvas');
+
+  var WALKS_KEY = 'petwalk_walks';
+  var PROFILE_KEY = 'petwalk_profile';
+  // 스킬/특성은 사용자가 고르지 않고 카탈로그에서 자동 배정 — 한 번 뽑으면 기억해뒀다가 같은 카드를
+  // 보여준다. "다시 뽑기"로만 바뀐다(PROJECT_CONTEXT.md "서비스 다이어트"의 자동 흐름 참고).
+  var PICK_KEY = 'petwalk_reward_card';
+
+  function loadJSON(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+  }
+  function saveJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 저장 실패해도 화면은 그대로 */ }
+  }
+  function randomIndex(list, except) {
+    if (list.length < 2) return 0;
+    var i;
+    do { i = Math.floor(Math.random() * list.length); } while (i === except);
+    return i;
+  }
+
+  var pick = loadJSON(PICK_KEY);
+  if (!pick || !CS.SKILLS[pick.skill] || !CS.PASSIVES[pick.passive]) {
+    pick = { skill: randomIndex(CS.SKILLS), passive: randomIndex(CS.PASSIVES) };
+    saveJSON(PICK_KEY, pick);
+  }
+
+  var profile = loadJSON(PROFILE_KEY) || {};
+  var petImage = null;
+  document.getElementById('profile-notice').hidden = !!(profile.name && profile.photo);
+
+  var progress = RR.computeProgress(loadJSON(WALKS_KEY));
+  var side = 'front';
+
+  var card = RC.create(function () {
+    return {
+      name: profile.name || '우리 아이', petImage: petImage, filterKey: 'pastel',
+      photoOffset: { x: 0, y: 0 }, photoZoom: 1,
+      skill: CS.SKILLS[pick.skill], passive: CS.PASSIVES[pick.passive],
+      showLocked: true, tiersOn: true
+    };
+  });
+
+  function renderCard() {
+    card.drawSide(canvas, side, progress, card.sharedHeight(progress));
+  }
+
+  function renderSummary() {
+    var p = progress;
+    var tier = RR.tierFor(p.walks), nt = RR.nextTier(p.walks);
+    document.getElementById('stat-walks').textContent = p.walks + '회';
+    document.getElementById('stat-km').textContent = p.km.toFixed(1);
+    document.getElementById('stat-tier').textContent = tier.name;
+    document.getElementById('tier-label').textContent = nt ? tier.name + ' → ' + nt.name + ' 테두리' : '금 테두리 달성';
+    document.getElementById('tier-left').textContent = nt ? (nt.minWalks - p.walks) + '회 남음' : '';
+    var frac = nt ? (p.walks - tier.minWalks) / (nt.minWalks - tier.minWalks) : 1;
+    document.getElementById('tier-bar').style.width = Math.round(frac * 100) + '%';
+
+    var placesEl = document.getElementById('places');
+    placesEl.innerHTML = '';
+    RR.PLACES.forEach(function (pl) {
+      var got = !!p.visited[pl.id];
+      var chip = document.createElement('span');
+      chip.className = got ? 'got' : '';
+      chip.textContent = (got ? '🏅 ' : '🔒 ') + pl.name;
+      placesEl.appendChild(chip);
+    });
+    document.getElementById('next-goal').textContent = '다음 보상 · ' + RR.nextGoalText(p);
+
+    // 스킬 칸이 열리기 전엔 뽑아도 카드에 안 보이니 버튼을 막아둔다
+    var rerollBtn = document.getElementById('reroll-btn');
+    rerollBtn.disabled = p.walks < RR.SLOT_RULES.skill;
+    rerollBtn.textContent = p.walks >= RR.SLOT_RULES.passive ? '스킬·특성 다시 뽑기' : '스킬 다시 뽑기';
+  }
+
+  function setSide(s) {
+    side = s;
+    document.getElementById('side-front').classList.toggle('active', s === 'front');
+    document.getElementById('side-back').classList.toggle('active', s === 'back');
+    renderCard();
+  }
+  document.getElementById('side-front').addEventListener('click', function () { setSide('front'); });
+  document.getElementById('side-back').addEventListener('click', function () { setSide('back'); });
+  canvas.addEventListener('click', function () { setSide(side === 'front' ? 'back' : 'front'); });
+
+  document.getElementById('reroll-btn').addEventListener('click', function () {
+    pick.skill = randomIndex(CS.SKILLS, pick.skill);
+    if (progress.walks >= RR.SLOT_RULES.passive) pick.passive = randomIndex(CS.PASSIVES, pick.passive);
+    saveJSON(PICK_KEY, pick);
+    setSide('front');
+  });
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    CS.downloadCanvasPNG(card.drawBoth(progress), (profile.name || 'walk-card') + '_card.png');
+  });
+
+  if (profile.photo) {
+    var img = new Image();
+    img.onload = function () { petImage = img; renderCard(); };
+    img.src = profile.photo;
+  }
+
+  renderSummary();
+  renderCard();
+  CS.preloadEmoji(RC.EMOJI, renderCard);
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load('30px "Black Han Sans"').catch(function () {}).then(renderCard);
+  }
+})();
+</script>
+</body>
+</html>
