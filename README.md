@@ -8,7 +8,8 @@
 
 - 프로젝트 배경, 기능 원안, 결정/미정 사항: [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
 - 코드 작성 규칙: [CLAUDE.md](CLAUDE.md)
-- **기획표(맨 위): [PLAN_MAP.md](PLAN_MAP.md)** — 가치 → 메뉴 → 기능. 계속 추가·갱신하는 문서
+- **기획표(맨 위): [왈슨 기획표 시트](https://claude.ai/artifact/Pi7dydyfmvxGtKcpczQ39j)** — 가치 → 메뉴 → 기능. 계속 추가·갱신하는
+  편집 원본(비공개). [PLAN_MAP.md](PLAN_MAP.md)는 옮기기 전(11/12) 사본
 - 기능 목록·방송 회차: [FEATURES.md](FEATURES.md), 0단계 기능 기획서: [SPEC_STAGE0.md](SPEC_STAGE0.md)
 - 조사·검토 문서: [RESEARCH_YOUTUBE.md](RESEARCH_YOUTUBE.md)(유튜브 댓글 조사), [SURVEY.md](SURVEY.md)(설문 초안),
   [REVIEW_2026-11.md](REVIEW_2026-11.md)(전체 재검토), [KEYRING_QUOTES.md](KEYRING_QUOTES.md)(키링 업체 비교),
