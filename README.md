@@ -13,7 +13,7 @@
 - 기능 목록·방송 회차: [FEATURES.md](FEATURES.md), 0단계 기능 기획서: [SPEC_STAGE0.md](SPEC_STAGE0.md)
 - 조사·검토 문서: [RESEARCH_YOUTUBE.md](RESEARCH_YOUTUBE.md)(유튜브 댓글 조사), [SURVEY.md](SURVEY.md)(설문 초안),
   [REVIEW_2026-11.md](REVIEW_2026-11.md)(전체 재검토), [KEYRING_QUOTES.md](KEYRING_QUOTES.md)(키링 업체 비교),
-  [QR_RULES.md](QR_RULES.md)(키링 QR 주소 설계)
+  [QR_RULES.md](QR_RULES.md)(키링 QR 주소 설계), [RESEARCH_BORROW.md](RESEARCH_BORROW.md)(다른 앱 차용 후보 50개 요약)
 
 ## 실행 방법
 
