@@ -75,6 +75,38 @@
 
 다른 답변은 보상 비용을 누가 내는지도 다루지 않았다.
 
+## 경쟁 앱은 얼마나 되나 (11/13, C안 시안 기준)
+
+> 가르시아(11/13): "이정도 기능이면 경쟁하는 앱이 얼마나 될가"
+
+검색으로 확인한 것만 적는다. 다운로드·이용자 수는 대부분 확인하지 못했다.
+
+| 묶음 | 확인한 앱 | 수 |
+|---|---|---|
+| 국내, 강아지 산책 기록이 중심 | 펫피(포인트 적립, 구글 플레이 10만+), 피리부는 강아지(사료알 기부), 펫핑(누적 10만 다운로드), 펫런(비만 케어 + 산책 보상), 마베독(아바타·영역 확장·피드), PawView(리더보드·보상), 비포펫(산책 대행 + 산책 기록·산책 지수), 멍콕 | 8개 안팎 |
+| 국내 스토어, 배변·건강 기록 | Furiend, DogNote, 댕플(가족 공유 케어), MyPetApp, PetnotePlus, PetJournal, Doggy Time, 삐뽀 | 8개 안팎 |
+| 해외, 산책 트래커 | Amiko, Walky, WalkMyDoggo, Lapka, PottyDog, PawPath, DogLog 등 | 한 목록에만 230개 넘음(AppsHunter, iOS, 2026년 6월) |
+| 기능별 대체재 | 걸음 보상(토스 만보기·캐시워크), 자랑(인스타), 동네(당근), 산책 지수(다음 날씨), 동반 장소(네이버 지도) | — |
+
+**시안과 가장 가까운 앱**
+- **Lapka**(해외, 2026년 5월 출시): 시간·거리 기록, 산책 중 쉬·응가 기록, 사진·메모, 달력, 하루 목표, 가족 공유. 시안의 오늘·끝 화면·기록 탭과 거의 같은 구성이다. 월 4.99달러.
+- **마베독**(국내): 반려견 아바타 꾸미기, 산책으로 영역 확장, 사진 산책 인증과 포인트, 경로·칼로리 기록, 피드. 시안의 카드·동네 지도와 겹친다.
+- **펫피**(국내): 산책 일지, 사진 인증, 포인트, 커뮤니티.
+
+**읽는 법(Claude 정리)**
+- 시안의 기능은 하나하나 이미 다 있다. 기능으로는 차별이 안 된다.
+- 확인한 범위에서 없는 것은 둘이다: 동네 가게가 비용을 내고 가게에서 받는 보상, 그리고 방송으로 같이 만드는 과정.
+- 큰 회사도 버티지 못했다: 삼성카드 아지냥이(100만+ 다운로드)는 2024년 5월에 끝났다.
+
+출처: [펫피](https://apps.apple.com/kr/app/%ED%8E%AB%ED%94%BC-%ED%8F%AC%EC%9D%B8%ED%8A%B8-%EC%A0%81%EB%A6%BD%ED%98%95-%EA%B0%95%EC%95%84%EC%A7%80-%EC%82%B0%EC%B1%85%EC%95%B1/id1487605660) ·
+[피리부는 강아지](https://ditoday.com/?p=71608) · [펫핑](https://apps.apple.com/kr/app/%ED%8E%AB%ED%95%91-%ED%8E%AB-%EB%94%94%EC%A7%80%ED%84%B8-%ED%97%AC%EC%8A%A4%EC%BC%80%EC%96%B4/id1532713559) ·
+[펫런](https://apps.apple.com/kr/app/%ED%8E%AB%EB%9F%B0-%EB%B3%B4%EC%83%81%EC%9D%B4-%EC%8C%93%EC%9D%B4%EB%8A%94-%EC%82%B0%EC%B1%85-%EC%95%B1/id1631255921) ·
+[마베독](https://apps.apple.com/kr/app/%EB%A7%88%EB%B2%A0%EB%8F%85/id1605008026) · [PawView](https://apps.apple.com/kr/app/pawview-%EB%B0%98%EB%A0%A4%EB%8F%99%EB%AC%BC-%EC%BC%80%EC%96%B4/id6446833437) ·
+[비포펫](https://apps.apple.com/kr/app/%EB%B9%84%ED%8F%AC%ED%8E%AB-%EC%82%B0%EC%B1%85%EB%8C%80%ED%96%89-%EC%82%B0%EC%B1%85-%EA%B8%B0%EB%A1%9D-%EB%8B%A4%EC%9D%B4%EC%96%B4%EB%A6%AC-%EC%A7%91-%EB%B0%A9%EB%AC%B8-%EC%BC%80%EC%96%B4/id6476087312) ·
+[멍콕](https://apps.apple.com/kr/app/%EB%B0%98%EB%A0%A4%EA%B2%AC-%EB%A7%9E%EC%B6%A4-%EC%82%B0%EC%B1%85-%EB%A9%8D%EC%BD%95/id6753100529) ·
+[댕플](https://apps.apple.com/kr/app/%EB%8C%95%ED%94%8C-%EB%B0%98%EB%A0%A4%EB%8F%99%EB%AC%BC-%EA%B1%B4%EA%B0%95%EA%B4%80%EB%A6%AC-%EB%B0%8F-%EA%B0%80%EC%A1%B1-%EA%B3%B5%EC%9C%A0-%EC%BC%80%EC%96%B4-%EC%84%9C%EB%B9%84%EC%8A%A4/id6747974985) ·
+[Lapka](https://mwm.ai/apps/lapka-dog-walk-tracker/6765949353) · [AppsHunter 목록](https://appshunter.io/ios/topics/dog-walk-tracker)
+
 ## 조사 한계
 
 - Firecrawl 크레딧이 조사 도중 떨어졌다.
