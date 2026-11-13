@@ -1801,7 +1801,7 @@ Claude 제안 요지(전문은 [WALWAL_PLAN.md](WALWAL_PLAN.md) "11/12 브레인
 - **결정(사용자)**: 화면 구조는 C안으로 간다. ("지금 지도 기반으로 그위에서 ui를 조절하는게 맞나 … 이 기획부터 다시 해야할거같아" → "C로 가자 화면 시안 그려봐")
   - 지도를 바탕에서 내리고 상태 셋으로 나눈다: 평소는 지도 없는 [오늘], 산책 중은 탭이 사라지는 전용 화면, 끝난 직후는 요약·응가·사진.
   - 하단 탭은 [오늘][기록][카드][동네]. '산책'은 탭이 아니라 모드이고, 지도는 [동네] 탭에서만 주인공이다.
-  - 상세는 [SPEC_STAGE0.md](SPEC_STAGE0.md) 4절. 화면 시안 9장은 [왈슨 화면 시안 — C안](https://claude.ai/artifact/DbRJMTbicpqPWmeXoPo2JY)(비공개). 시안의 숫자·문구는 자리 표시다.
+  - 상세는 [SPEC_STAGE0.md](SPEC_STAGE0.md) 4절. 화면 시안 10장은 [왈슨 화면 시안 — C안](https://claude.ai/artifact/DbRJMTbicpqPWmeXoPo2JY)(비공개). 시안의 숫자·문구는 자리 표시다.
 - **제안(Claude)**: 응가 일기 앱 기획은 [POOP_DIARY.md](POOP_DIARY.md)(응가 달력 · 밤 산책 플래시 스캔 · 기록 보상 · 산책과는 '언제'로만 잇기).
 
 ## 해야 할 것 (개발 백로그)
