@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
+<script src="infra-pins.js?v=2"></script>
+<script src="demo-geo.js?v=1"></script>
 
 <!-- 본문용 Pretendard(한국어 웹에서 널리 쓰이는 서체, 시스템 기본 서체보다 완성도 높음)
      + 타이틀/브랜드 포인트용 Black Han Sans(카드 화면들과 이미 공유 중인 서체,
@@ -85,8 +87,53 @@
   }
   .title-chip .icon { color: var(--accent); }
   /* 산책 중 기록 끊김/화면 켜두기 안내 — 제목 칩 바로 아래에 잠깐 떴다 사라진다 */
+  /* ── 동네 시설 필터 칩(2026-11-14): 앱을 열자마자 "볼 것"이 있게 첫 화면에 시설 핀을 띄우고,
+     종류별로 켜고 끈다. 오른쪽 줌/내 위치 컨트롤 열(약 48px)을 피해서 right를 띄우고, 칩이
+     많아지면 가로로 스크롤된다. 데이터와 색/아이콘은 infra-pins.js가 갖고 있다. ── */
+  .infra-chips {
+    position: absolute; top: 66px; left: 14px; right: 62px; z-index: 10;
+    display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .infra-chips::-webkit-scrollbar { display: none; }
+  .infra-caveat {
+    position: absolute; top: 104px; left: 18px; right: 62px; z-index: 9; margin: 0;
+    font-size: 11px; font-weight: 700; color: var(--ink-soft); pointer-events: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 6px var(--bg);
+  }
+  .infra-chip {
+    flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+    min-height: 32px; padding: 0 9px 0 7px; border-radius: var(--radius-pill);
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink-soft);
+    font-family: 'Pretendard', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .infra-chip:active { transform: scale(0.96); }
+  .infra-chip .dot {
+    width: 18px; height: 18px; border-radius: 50%; color: #fff; opacity: 0.45;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .infra-chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ink-soft); }
+  .infra-chip[aria-pressed="true"] .dot { opacity: 1; }
+  .infra-chip .count { font-weight: 500; color: var(--ink-soft); }
+
+  .infra-popup { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+  .infra-popup-cat { font-size: 11px; font-weight: 700; }
+  .infra-popup-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .infra-popup-note { color: var(--ink); }
+  .infra-popup-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .infra-popup-tags span {
+    font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: var(--radius-pill);
+    background: var(--bg-deep); color: var(--ink);
+  }
+  .infra-popup-source { font-size: 11px; color: var(--ink-soft); }
+  .infra-popup-links { display: flex; gap: 12px; margin-top: 2px; }
+  .infra-popup-links a { font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none; }
+
   .walk-notice {
-    position: absolute; top: 64px; left: 14px; z-index: 10; max-width: min(340px, calc(100% - 82px));
+    position: absolute; top: 126px; left: 14px; z-index: 10; max-width: min(340px, calc(100% - 82px));
     display: flex; align-items: flex-start; gap: 8px;
     background: var(--panel); border: 1px solid var(--warn); border-radius: 14px;
     padding: 10px 12px; font-size: 13px; line-height: 1.5; font-weight: 600; color: var(--ink);
@@ -353,17 +400,24 @@
       <span class="icon" data-icon="list"></span>
     </button>
     <div class="menu-dropdown" id="menu-dropdown">
+      <a href="start.html"><span class="icon" data-icon="dog"></span><span>주민증 만들기</span></a>
       <a href="my-card.html"><span class="icon" data-icon="medal"></span><span>내 카드</span></a>
       <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드 만들기</span></a>
       <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
       <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
+      <a href="privacy.html"><span class="icon" data-icon="warning"></span><span>개인정보 안내</span></a>
       <a href="#" id="install-link" hidden><span class="icon" data-icon="plus"></span><span>홈 화면에 추가</span></a>
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
       <a href="course-builder.html" class="tool-item"><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
+      <a href="infra-builder.html" class="tool-item"><span class="icon" data-icon="mapPin"></span><span>시설 핀 관리</span></a>
     </div>
   </div>
 </div>
+
+<div class="infra-chips" id="infra-chips" role="group" aria-label="동네 시설 종류"></div>
+<!-- 상시 주의 문구(기획표 V1-21): 핀이 없는 곳을 "안전하다"고 읽지 않게 지도 위에 늘 띄워 둔다 -->
+<p class="infra-caveat" id="infra-caveat">핀이 없다고 안전한 건 아니에요 · 바닥은 직접 확인</p>
 
 <div class="walk-notice" id="walk-notice" role="status" aria-live="polite">
   <span class="icon" data-icon="warning"></span><span id="walk-notice-text"></span>
@@ -728,6 +782,135 @@
 
   function restoreSavedPins() {
     loadPins().forEach(function (p) { addPinMarker(p.id, p.lat, p.lng, p.memo); });
+  }
+
+  // ── 동네 시설 핀(2026-11-14) ──
+  // 산책을 하기 전에도 앱을 열 이유가 있게, 첫 화면 지도에 공용 시설(공원·화장실·동물병원 등)을
+  // 종류별 핀으로 띄운다. 데이터는 infra-pins.js(배포본에 박아둔 것 + 이 기기에서 운영자가 찍은 것)
+  // 에서만 읽고, 여기서 외부로 보내는 것은 없다. 위의 "핀 꽂기"(개인 메모 핀)와는 별개 레이어다.
+  var INFRA_FILTER_KEY = 'petwalk_infra_filter'; // 꺼둔 종류 목록 — 다음에 열어도 그대로
+  var INFRA_MIN_ZOOM = 13;                        // 이보다 멀리 보면 핀이 뭉쳐서 지도를 가리므로 숨김
+  var infraLayers = {};                           // 종류 key → L.layerGroup
+  var infraHidden = {};
+
+  function loadInfraHidden() {
+    try {
+      (JSON.parse(localStorage.getItem(INFRA_FILTER_KEY)) || []).forEach(function (k) { infraHidden[k] = true; });
+    } catch (e) { /* 저장값이 깨졌으면 전부 켠 상태로 시작 */ }
+  }
+  function saveInfraHidden() {
+    try { localStorage.setItem(INFRA_FILTER_KEY, JSON.stringify(Object.keys(infraHidden))); } catch (e) { /* 저장 실패해도 화면엔 반영됨 */ }
+  }
+
+  function buildInfraPopup(pin) {
+    var cat = InfraPins.category(pin.cat);
+    var wrap = document.createElement('div');
+    wrap.className = 'infra-popup';
+
+    var catEl = document.createElement('div');
+    catEl.className = 'infra-popup-cat';
+    catEl.style.color = cat.color;
+    catEl.textContent = cat.label;
+    wrap.appendChild(catEl);
+
+    var nameEl = document.createElement('div');
+    nameEl.className = 'infra-popup-name';
+    nameEl.textContent = pin.name || cat.label;
+    wrap.appendChild(nameEl);
+
+    if (pin.tags && pin.tags.length) {
+      var tagsEl = document.createElement('div');
+      tagsEl.className = 'infra-popup-tags';
+      pin.tags.forEach(function (t) {
+        var s = document.createElement('span');
+        s.textContent = t;
+        tagsEl.appendChild(s);
+      });
+      wrap.appendChild(tagsEl);
+    }
+    if (pin.note) {
+      var noteEl = document.createElement('div');
+      noteEl.className = 'infra-popup-note';
+      noteEl.textContent = pin.note;
+      wrap.appendChild(noteEl);
+    }
+
+    // 출처를 항상 보여준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함.
+    var srcEl = document.createElement('div');
+    srcEl.className = 'infra-popup-source';
+    srcEl.textContent = InfraPins.sourceText(pin);
+    wrap.appendChild(srcEl);
+
+    var links = document.createElement('div');
+    links.className = 'infra-popup-links';
+    // 길찾기는 카카오맵 웹 링크로 연다 — 넘기는 건 이 공용 시설의 이름·좌표뿐이고 사용자 위치는 넣지 않는다.
+    var nav = document.createElement('a');
+    nav.href = 'https://map.kakao.com/link/to/' + encodeURIComponent(pin.name || cat.label) + ',' + pin.lat + ',' + pin.lng;
+    nav.target = '_blank';
+    nav.rel = 'noopener';
+    nav.textContent = '길찾기';
+    links.appendChild(nav);
+    if (pin.phone) {
+      var tel = document.createElement('a');
+      tel.href = 'tel:' + String(pin.phone).replace(/[^0-9+]/g, '');
+      tel.textContent = '전화 걸기';
+      links.appendChild(tel);
+    }
+    wrap.appendChild(links);
+    return wrap;
+  }
+
+  function syncInfraVisibility() {
+    var zoomOk = map.getZoom() >= INFRA_MIN_ZOOM;
+    Object.keys(infraLayers).forEach(function (key) {
+      var show = zoomOk && !infraHidden[key];
+      if (show && !map.hasLayer(infraLayers[key])) map.addLayer(infraLayers[key]);
+      if (!show && map.hasLayer(infraLayers[key])) map.removeLayer(infraLayers[key]);
+    });
+  }
+
+  function initInfraLayer() {
+    var chipsEl = document.getElementById('infra-chips');
+    if (!window.InfraPins || !chipsEl) return;
+    loadInfraHidden();
+
+    var counts = {};
+    InfraPins.all().forEach(function (pin) {
+      if (!InfraPins.category(pin.cat) || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return;
+      if (!infraLayers[pin.cat]) infraLayers[pin.cat] = L.layerGroup();
+      counts[pin.cat] = (counts[pin.cat] || 0) + 1;
+      var icon = L.divIcon({ className: '', html: InfraPins.markerHtml(pin.cat), iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -12] });
+      L.marker([pin.lat, pin.lng], { icon: icon, title: pin.name || '' })
+        .bindPopup(buildInfraPopup(pin))
+        .addTo(infraLayers[pin.cat]);
+    });
+
+    // 핀이 하나도 없는 종류는 칩을 만들지 않는다(눌러도 아무것도 안 나오는 버튼을 두지 않기 위함).
+    InfraPins.CATEGORIES.forEach(function (cat) {
+      if (!counts[cat.key]) return;
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'infra-chip';
+      chip.setAttribute('aria-pressed', infraHidden[cat.key] ? 'false' : 'true');
+      chip.innerHTML = '<span class="dot" style="background:' + cat.color + '">' + InfraPins.iconSvg(cat.key, 11) + '</span>';
+      var label = document.createElement('span');
+      label.textContent = cat.label;
+      chip.appendChild(label);
+      var count = document.createElement('span');
+      count.className = 'count';
+      count.textContent = counts[cat.key];
+      chip.appendChild(count);
+      chip.addEventListener('click', function () {
+        if (infraHidden[cat.key]) delete infraHidden[cat.key]; else infraHidden[cat.key] = true;
+        chip.setAttribute('aria-pressed', infraHidden[cat.key] ? 'false' : 'true');
+        saveInfraHidden();
+        syncInfraVisibility();
+      });
+      chipsEl.appendChild(chip);
+    });
+
+    map.on('zoomend', syncInfraVisibility);
+    syncInfraVisibility();
   }
 
   function computeStreakDays(walks) {
@@ -1131,6 +1314,7 @@
   initMap();
   positionZoomControl();
   restoreSavedPins();
+  initInfraLayer();
   showIdleStats();
   // 앱을 열면 바로 내 위치를 보여달라는 요청(2026-09-23) — locateMe()가 이미 권한 이유를
   // 먼저 설명하는 confirm()을 포함하고 있어(CLAUDE.md 규칙), 자동 호출해도 안내 없이

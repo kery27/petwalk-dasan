@@ -112,6 +112,17 @@
       </select>
     </div>
 
+    <!-- 성향 신호등(2026-11-14, 기획표 V4-04): 주민증 카드·키링 테두리 색으로 쓴다. 지도 노출과는 잇지 않는다. -->
+    <div class="field">
+      <label for="f-signal">산책 신호등 (다른 강아지를 만났을 때)</label>
+      <select id="f-signal">
+        <option value="">아직 안 골랐어요</option>
+        <option value="green">초록불 — 다가와도 좋아요</option>
+        <option value="yellow">노랑불 — 천천히 인사해요</option>
+        <option value="red">빨강불 — 눈으로만 예뻐해 주세요</option>
+      </select>
+    </div>
+
     <button class="btn-save" id="save-btn">프로필 저장</button>
     <div class="saved-toast" id="toast">저장됐어요!</div>
   </div>
@@ -119,6 +130,8 @@
   <p class="hint">
     로그인 없이 이 기기에만 저장돼요(다른 기기와는 공유되지 않아요). 견주 이름은 따로 받지
     않고, 반려동물 정보만 등록합니다.
+    <a href="start.html" style="color: var(--accent); font-weight: 700;">주민증 카드 만들기</a> ·
+    <a href="privacy.html" style="color: var(--ink-soft);">개인정보 안내</a>
   </p>
 </div>
 
@@ -132,6 +145,7 @@
   var photoPlaceholder = document.getElementById('photo-placeholder');
   var fName = document.getElementById('f-name');
   var fSize = document.getElementById('f-size');
+  var fSignal = document.getElementById('f-signal');
   var saveBtn = document.getElementById('save-btn');
   var toast = document.getElementById('toast');
 
@@ -156,6 +170,7 @@
   if (existing) {
     fName.value = existing.name || '';
     if (existing.size) fSize.value = existing.size;
+    if (existing.signal) fSignal.value = existing.signal;
     photoDataUrl = existing.photo || null;
     showPhoto(photoDataUrl);
   }
@@ -198,11 +213,12 @@
   });
 
   saveBtn.addEventListener('click', function () {
-    var profile = {
-      name: fName.value.trim(),
-      size: fSize.value,
-      photo: photoDataUrl
-    };
+    // start.html이 같이 저장해 둔 값(카드 번호·발급일)을 지우지 않게 기존 프로필 위에 덮어쓴다
+    var profile = loadProfile() || {};
+    profile.name = fName.value.trim();
+    profile.size = fSize.value;
+    profile.photo = photoDataUrl;
+    if (fSignal.value) profile.signal = fSignal.value; else delete profile.signal;
     try {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       toast.classList.add('show');
