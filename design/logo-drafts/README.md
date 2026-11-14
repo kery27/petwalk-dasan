@@ -14,7 +14,7 @@
 | `chi-coin-side.svg` | 옆을 보며 입을 벌린 얼굴 (시안 B안) |
 
 - 두 파일 모두 바탕 없이 동전만 들어 있다(400×400 기준). 시안 보드에서는 노란 바탕 `#f7c84a`(A·B안)와 앱 색 바탕 `#b8563a`(C안)에 올려 봤다.
-- 나란히 비교한 보드: [왈슨 화면 시안 캔버스](https://claude.ai/artifact/DbRJMTbicpqPWmeXoPo2JY)(비공개)의 "앱 아이콘 시안 · 으르렁 치와와 동전".
+- 나란히 비교한 보드: [왈슨 화면 시안 캔버스](https://claude.ai/artifact/DbRJMTbicpqPWmeXoPo2JY)(비공개)의 "앱 아이콘 시안 · 새로 그린 판 (앞 시안)".
 
 ### 그린 방식
 
