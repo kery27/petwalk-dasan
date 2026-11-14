@@ -447,7 +447,11 @@
 </div>
 
 <div class="bottom-bar" id="bottom-bar">
-  <button class="btn btn-secondary" id="route-btn">
+  <!-- 추천 루트는 숨김(2026-11-14 가르시아 결정). 이유: "내 위치 주변으로 보기"를 허락하면 내 위치 근처
+       좌표가 공개 경로 서버(router.project-osrm.org)로 나간다. 기획표에서도 "내림"(V1-13, 메리트 약함).
+       코드는 그대로 두고 버튼만 감춘다 — 다시 켜려면 아래 style을 지우고 privacy.html에 다시 적을 것.
+       .btn이 display:flex라 hidden 속성이 안 먹어서 인라인 style로 감춘다. -->
+  <button class="btn btn-secondary" id="route-btn" style="display:none;">
     <span class="icon" data-icon="path"></span>
     <span class="btn-label">추천 루트</span>
   </button>
