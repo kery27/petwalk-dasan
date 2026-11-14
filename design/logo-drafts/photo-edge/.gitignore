@@ -1,0 +1,4 @@
+out/
+*.npy
+prev_*.png
+__pycache__/
