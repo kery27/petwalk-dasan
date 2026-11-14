@@ -69,6 +69,8 @@
     background: var(--accent-tint); display: flex; align-items: center; justify-content: center;
   }
   .thumb svg { width: 40px; height: 40px; }
+  .thumb.has-photo { overflow: hidden; }
+  .thumb.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .thumb .no-route { font-size: 10px; color: var(--ink-soft); text-align: center; line-height: 1.3; }
 
   .info { flex: 1; min-width: 0; }
@@ -113,6 +115,7 @@
   </div>
 </div>
 
+<script src="walk-photos.js?v=1"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks'; // index.html과 같은 키 — 같은 오리진이라 localStorage 공유됨
@@ -235,11 +238,23 @@
               (w.rewardEligible === false ? '<span class="no-reward">보상 제외</span>' : '') + '</div>') +
         '</div>';
       listEl.appendChild(card);
+      // 끝 화면에서 남긴 "오늘의 한 장"이 있으면 썸네일을 사진으로 바꾼다(휴대폰 안 저장소에서 읽음)
+      if (w.photoKey && window.WalkPhotos) {
+        var thumb = card.querySelector('.thumb');
+        var img = document.createElement('img');
+        img.alt = '산책 사진';
+        WalkPhotos.show(w.photoKey, img).then(function (ok) {
+          if (!ok) return;
+          thumb.innerHTML = '';
+          thumb.classList.add('has-photo');
+          thumb.appendChild(img);
+        });
+      }
     });
   }
 })();
 </script>
-<script src="tabbar.js?v=1" data-tab="history"></script>
+<script src="tabbar.js?v=2" data-tab="history"></script>
 
 </body>
 </html>

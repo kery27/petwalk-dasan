@@ -30,7 +30,12 @@
   ];
 
   // source: 'osm' = OpenStreetMap에서 가져온 것(현장 확인 전), 'field' = 운영자가 직접 가서 확인한 것.
-  var SEED = (window.PETWALK_SPOTS || []).filter(function (p) {
+  // 샘플 데이터로 보는 중이면(sample-data.js) 이 휴대폰에만 있는 샘플 가게를 더한다
+  var sampleSpots = [];
+  try {
+    if (localStorage.getItem('petwalk_sample_mode') === '1') sampleSpots = JSON.parse(localStorage.getItem('petwalk_sample_spots')) || [];
+  } catch (e) { sampleSpots = []; }
+  var SEED = (window.PETWALK_SPOTS || []).concat(sampleSpots).filter(function (p) {
     return p && p.id && typeof p.lat === 'number' && typeof p.lng === 'number';
   });
   function all() { return SEED.slice(); }

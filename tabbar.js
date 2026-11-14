@@ -13,12 +13,22 @@
     { key: 'town', label: '동네', href: 'town.html', icon: 'M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z' }
   ];
 
+  // 샘플 데이터로 보는 중이면(sample-data.js) 탭 위에 띠를 붙이고, 그만큼 --tabbar-h를 키운다
+  // (지도 화면 등이 --tabbar-h만큼 비켜 앉으므로 띠를 가리지 않는다)
+  var sampleOn = false;
+  try { sampleOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sampleOn = false; }
+  var bandH = sampleOn ? 28 : 0;
+
   var style = document.createElement('style');
   style.textContent =
-    ':root{--tabbar-h:calc(58px + env(safe-area-inset-bottom, 0px));}' +
+    ':root{--tabbar-h:calc(' + (58 + bandH) + 'px + env(safe-area-inset-bottom, 0px));}' +
     'body{padding-bottom:calc(var(--tabbar-h) + 16px) !important;}' +
-    '.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;justify-content:center;' +
-      'height:var(--tabbar-h);padding-bottom:env(safe-area-inset-bottom, 0px);' +
+    '.tabbar-wrap{position:fixed;left:0;right:0;bottom:0;z-index:1000;}' +
+    '.sample-band{display:flex;align-items:center;justify-content:center;gap:10px;height:28px;background:#4a3f35;color:#fff;' +
+      'font:700 12px Pretendard,-apple-system,"Malgun Gothic",sans-serif;}' +
+    '.sample-band a{color:#ffd9c9;text-decoration:underline;}' +
+    '.tabbar{position:relative;display:flex;justify-content:center;' +
+      'height:calc(58px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);' +
       'background:#fffaf3;border-top:1px solid #e6d6c1;box-shadow:0 -2px 12px rgba(74,63,53,0.08);}' +
     '.tabbar a{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
       'text-decoration:none;color:#8a7a68;font:600 11px Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;' +
@@ -41,7 +51,21 @@
       a.appendChild(label);
       nav.appendChild(a);
     });
-    document.body.appendChild(nav);
+    var wrap = document.createElement('div');
+    wrap.className = 'tabbar-wrap';
+    if (sampleOn) {
+      var band = document.createElement('div');
+      band.className = 'sample-band';
+      band.setAttribute('role', 'status');
+      band.appendChild(document.createTextNode('샘플 데이터를 보는 중'));
+      var off = document.createElement('a');
+      off.href = 'index.html?sample=off';
+      off.textContent = '샘플 끄기';
+      band.appendChild(off);
+      wrap.appendChild(band);
+    }
+    wrap.appendChild(nav);
+    document.body.appendChild(wrap);
   }
   if (document.body) build(); else document.addEventListener('DOMContentLoaded', build);
 })();

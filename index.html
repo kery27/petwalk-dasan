@@ -80,6 +80,8 @@
   .last strong { font-size: 15px; font-weight: 700; }
   .last span { font-size: 13px; color: var(--ink-soft); }
   .last .go { color: var(--accent); font-weight: 700; flex-shrink: 0; }
+  .last-photo { flex-shrink: 0; width: 64px; height: 64px; border-radius: 14px; object-fit: cover; }
+  .last-photo[hidden] { display: none; }
 
   .notice {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -89,6 +91,13 @@
   .notice strong { color: var(--accent); flex-shrink: 0; }
   .notice[hidden] { display: none; }
 
+  .sample-btn {
+    display: block; width: 100%; margin-top: 4px; padding: 13px; border-radius: 999px;
+    border: 1px dashed var(--accent); background: transparent; color: var(--accent);
+    font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .sample-btn.is-on { border-style: solid; background: var(--panel); color: var(--ink); }
+  .sample-btn:disabled { opacity: 0.6; }
   .links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 18px 2px 0; }
   .links a { font-size: 13px; color: var(--ink-soft); }
   .links a[hidden] { display: none; }
@@ -129,10 +138,14 @@
   <section class="panel" id="last-panel" hidden>
     <h2>최근 산책</h2>
     <a class="last" href="walk-history.html">
-      <span><strong id="last-title"></strong><br><span id="last-sub"></span></span>
+      <img class="last-photo" id="last-photo" alt="최근 산책 사진" hidden>
+      <span style="flex:1;min-width:0;"><strong id="last-title"></strong><br><span id="last-sub"></span></span>
       <span class="go">기록 보기</span>
     </a>
   </section>
+
+  <!-- 샘플 데이터로 보기(2026-11-14): 버튼 하나로 기록·카드·사진·동네 가게를 채워 둘러본다(sample-data.js) -->
+  <button type="button" class="sample-btn" id="sample-btn">샘플 데이터로 둘러보기</button>
 
   <div class="links">
     <a href="start.html">주민증 카드</a>
@@ -141,7 +154,9 @@
   </div>
 </div>
 
-<script src="tabbar.js?v=1" data-tab="today"></script>
+<script src="walk-photos.js?v=1"></script>
+<script src="sample-data.js?v=1"></script>
+<script src="tabbar.js?v=2" data-tab="today"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';     // walk.html이 산책을 끝낼 때 저장하는 기록
@@ -260,6 +275,39 @@
     document.getElementById('last-sub').textContent =
       (last.durationMin || 0) + '분' + (last.distanceKm ? ' · ' + last.distanceKm.toFixed(1) + 'km' : ' · 시간만 기록');
     document.getElementById('last-panel').hidden = false;
+    // 끝 화면에서 남긴 사진이 있으면 같이 보여 준다(이 휴대폰 안 저장소에서 읽음)
+    if (last.photoKey && window.WalkPhotos) {
+      var lastPhoto = document.getElementById('last-photo');
+      WalkPhotos.show(last.photoKey, lastPhoto).then(function (ok) { lastPhoto.hidden = !ok; });
+    }
+  }
+
+  // ── 샘플 데이터로 보기 ──
+  var sampleBtn = document.getElementById('sample-btn');
+  function paintSample() {
+    var on = window.PetwalkSample && PetwalkSample.isOn();
+    sampleBtn.textContent = on ? '샘플 끄고 내 기록으로 돌아가기' : '샘플 데이터로 둘러보기';
+    sampleBtn.classList.toggle('is-on', !!on);
+  }
+  function sampleOff() {
+    if (!confirm('샘플 데이터를 지우고 원래 기록으로 돌아갈까요?\n샘플을 보는 동안 새로 한 산책도 같이 지워져요.')) return;
+    sampleBtn.disabled = true;
+    PetwalkSample.turnOff().then(function () { location.replace('index.html'); });
+  }
+  sampleBtn.addEventListener('click', function () {
+    if (!window.PetwalkSample) return;
+    if (PetwalkSample.isOn()) { sampleOff(); return; }
+    if (!confirm('샘플 데이터로 앱을 채울까요?\n지금 기록은 따로 보관했다가, "샘플 끄기"를 누르면 그대로 돌아와요.')) return;
+    sampleBtn.disabled = true;
+    sampleBtn.textContent = '샘플 넣는 중…';
+    PetwalkSample.turnOn().then(function () { location.replace('index.html'); })
+      .catch(function (err) { alert('샘플을 넣지 못했어요: ' + err.message); sampleBtn.disabled = false; paintSample(); });
+  });
+  paintSample();
+  // 탭 위 띠의 "샘플 끄기"는 index.html?sample=off 로 온다
+  if (/[?&]sample=off/.test(location.search) && window.PetwalkSample) {
+    history.replaceState(null, '', 'index.html');
+    if (PetwalkSample.isOn()) setTimeout(sampleOff, 50);
   }
 
   // ── 홈 화면에 추가(설치) — 브라우저가 설치 가능하다고 알려 줄 때만 링크를 보인다 ──

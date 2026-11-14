@@ -14,7 +14,7 @@
      오늘 충분했나 · 킁킁 지수 · 응가. 전부 골라도 되고 안 골라도 된다.
      방금 끝난 산책(petwalk_walks의 마지막 기록)에 답을 붙여 저장한다 — feel / sniff / poop.
      go.html(시간만)과 walk.html(길 기록) 둘 다 끝나면 여기로 온다. 서버 없음, 위치 없음.
-     문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 사진 한 장·가족에게 보내기는 아직 없다. */
+     문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 오늘의 한 장은 휴대폰 안에만(walk-photos.js). 가족에게 보내기는 아직 없다. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
@@ -48,6 +48,26 @@
   .opts button:active { transform: scale(0.97); }
   .opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
   .scale-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+
+  .photo { position: relative; border-radius: 14px; overflow: hidden; background: #fff; }
+  .photo img { display: block; width: 100%; max-height: 360px; object-fit: cover; }
+  .photo img[hidden] { display: none; }
+  .photo-pick {
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border: 2px dashed var(--panel-border); border-radius: 14px; background: #fff; color: var(--accent);
+    padding: 22px 10px; font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+  }
+  .photo-pick[hidden] { display: none; }
+  .photo-pick .plus { font-size: 28px; line-height: 1; }
+  .photo-pick small { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  .photo-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .photo-actions[hidden] { display: none; }
+  .photo-actions button {
+    flex: 1; border: 1px solid var(--panel-border); background: #fff; color: var(--ink);
+    border-radius: 12px; padding: 10px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .photo-note { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; }
+  .btn-main[disabled] { opacity: 0.6; }
 
   .btn-main {
     width: 100%; border: none; border-radius: 999px; padding: 16px; margin-top: 10px;
@@ -100,10 +120,30 @@
     </div>
   </section>
 
+  <!-- 오늘의 한 장(2026-11-14): 이 휴대폰 안(IndexedDB)에만 저장. 위치 정보는 빠진다(walk-photos.js) -->
+  <section class="q">
+    <h2>오늘의 한 장 <span>선택</span></h2>
+    <div class="photo" id="photo-box">
+      <img id="photo-img" alt="오늘 산책 사진" hidden>
+      <button type="button" class="photo-pick" id="photo-pick">
+        <span class="plus">+</span>
+        <span>사진 남기기</span>
+        <small>찍거나 앨범에서 골라요</small>
+      </button>
+    </div>
+    <div class="photo-actions" id="photo-actions" hidden>
+      <button type="button" id="photo-change">다른 사진</button>
+      <button type="button" id="photo-clear">빼기</button>
+    </div>
+    <input type="file" id="photo-input" accept="image/*" hidden>
+    <p class="photo-note">이 휴대폰에만 저장돼요. 사진에 붙은 위치 정보는 빼고 저장해요.</p>
+  </section>
+
   <button type="button" class="btn-main" id="save-btn">저장하고 오늘로</button>
   <a class="btn-text" href="index.html">묻지 않고 넘어가기</a>
 </div>
 
+<script src="walk-photos.js?v=1"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';
@@ -152,20 +192,77 @@
     paint();
   });
 
-  document.getElementById('save-btn').addEventListener('click', function () {
-    // 다른 탭에서 기록이 바뀌었을 수 있으니 다시 읽어 마지막 기록에 붙인다
-    var latest = loadJSON(WALKS_KEY, []);
-    var target = latest.length ? latest[latest.length - 1] : null;
-    if (target) {
-      if (answers.feel) target.feel = answers.feel; else delete target.feel;
-      if (answers.sniff) target.sniff = Number(answers.sniff); else delete target.sniff;
-      if (answers.poop !== undefined) target.poop = Number(answers.poop); else delete target.poop;
-      try { localStorage.setItem(WALKS_KEY, JSON.stringify(latest)); } catch (e) {
-        alert('저장하지 못했어요. 저장 공간을 확인해 주세요.');
-        return;
-      }
+  // ── 오늘의 한 장 ──
+  var photoBlob = null;          // 새로 고른 사진(아직 저장 전)
+  var photoRemoved = false;      // 이미 있던 사진을 빼기로 했는지
+  var photoImg = document.getElementById('photo-img');
+  var photoPick = document.getElementById('photo-pick');
+  var photoActions = document.getElementById('photo-actions');
+  var photoInput = document.getElementById('photo-input');
+  var previewUrl = null;
+  function showPhoto(has) {
+    photoImg.hidden = !has;
+    photoPick.hidden = has;
+    photoActions.hidden = !has;
+  }
+  function pickPhoto() { photoInput.click(); }
+  photoPick.addEventListener('click', pickPhoto);
+  document.getElementById('photo-change').addEventListener('click', pickPhoto);
+  document.getElementById('photo-clear').addEventListener('click', function () {
+    photoBlob = null;
+    photoRemoved = true;
+    showPhoto(false);
+  });
+  photoInput.addEventListener('change', function () {
+    var file = photoInput.files[0];
+    photoInput.value = '';
+    if (!file || !window.WalkPhotos) return;
+    WalkPhotos.shrink(file, 1080).then(function (blob) {
+      photoBlob = blob;
+      photoRemoved = false;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(blob);
+      photoImg.src = previewUrl;
+      showPhoto(true);
+    }).catch(function (err) { alert('사진을 불러오지 못했어요: ' + err.message); });
+  });
+  // 이 산책에 이미 사진이 있으면(끝 화면에 다시 들어온 경우) 보여 준다
+  if (walk.photoKey && window.WalkPhotos) {
+    WalkPhotos.show(walk.photoKey, photoImg).then(function (ok) { showPhoto(ok); });
+  }
+
+  var saveBtn = document.getElementById('save-btn');
+  saveBtn.addEventListener('click', function () {
+    saveBtn.disabled = true;
+    // 사진부터 휴대폰 안 저장소에 넣고, 기록에는 열쇠만 적는다
+    var key = (walk.photoKey && !photoRemoved) ? walk.photoKey : null;
+    var step = Promise.resolve();
+    if (photoBlob && window.WalkPhotos) {
+      key = walk.photoKey || WalkPhotos.newKey();
+      step = WalkPhotos.put(key, photoBlob).catch(function (err) {
+        key = null;
+        alert('사진은 저장하지 못했어요(' + err.message + '). 나머지는 저장할게요.');
+      });
+    } else if (photoRemoved && walk.photoKey && window.WalkPhotos) {
+      step = WalkPhotos.remove(walk.photoKey).catch(function () { /* 지우지 못해도 기록에서는 뺀다 */ });
     }
-    location.replace('index.html');
+    step.then(function () {
+      // 다른 탭에서 기록이 바뀌었을 수 있으니 다시 읽어 마지막 기록에 붙인다
+      var latest = loadJSON(WALKS_KEY, []);
+      var target = latest.length ? latest[latest.length - 1] : null;
+      if (target) {
+        if (answers.feel) target.feel = answers.feel; else delete target.feel;
+        if (answers.sniff) target.sniff = Number(answers.sniff); else delete target.sniff;
+        if (answers.poop !== undefined) target.poop = Number(answers.poop); else delete target.poop;
+        if (key) target.photoKey = key; else delete target.photoKey;
+        try { localStorage.setItem(WALKS_KEY, JSON.stringify(latest)); } catch (e) {
+          saveBtn.disabled = false;
+          alert('저장하지 못했어요. 저장 공간을 확인해 주세요.');
+          return;
+        }
+      }
+      location.replace('index.html');
+    });
   });
 })();
 </script>
