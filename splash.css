@@ -1,0 +1,23 @@
+/* 왈슨 시작 화면(2026-11-14 가르시아) — 앱을 열면 2초 보여 주고 사라진다. splash.js와 같이 쓴다.
+   한 번 연 뒤(같은 세션)에는 다시 띄우지 않는다 — <html>에 .no-splash가 붙으면 숨김.
+   색은 로고 바탕(노랑 #F2B833)과 선(갈색 #4A3624)에 맞췄다. */
+#splash {
+  position: fixed; inset: 0; z-index: 100000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 24px calc(28px + env(safe-area-inset-bottom, 0px));
+  background: #F2B833; color: #4A3624; text-align: center;
+  font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  transition: opacity 0.45s ease;
+  cursor: pointer;
+}
+.no-splash #splash { display: none; }
+#splash.is-leaving { opacity: 0; pointer-events: none; }
+#splash .splash-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#splash img { display: block; width: min(78vw, 360px); height: auto; margin-bottom: 18px; }
+#splash .splash-name {
+  font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-weight: 400;
+  font-size: clamp(64px, 20vw, 96px); line-height: 1; letter-spacing: 0.02em;
+}
+#splash .splash-tag { font-size: clamp(18px, 5.2vw, 22px); font-weight: 800; margin-top: 14px; letter-spacing: -0.01em; }
+#splash .splash-by { font-size: 13px; font-weight: 700; opacity: 0.75; letter-spacing: 0.02em; }
+@media (prefers-reduced-motion: reduce) { #splash { transition: none; } }

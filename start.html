@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>댕댕이 주민증 만들기</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
@@ -121,8 +121,24 @@
   .foot { margin-top: 22px; font-size: 12px; line-height: 1.6; color: var(--ink-soft); }
   .foot a { color: var(--ink-soft); }
 </style>
+<!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
+<script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="splash.css?v=1">
+<link rel="preload" as="image" href="icons/walson-logo.webp">
 </head>
 <body>
+<div id="splash" role="img" aria-label="왈슨 — 댕댕이 산책 필수앱, 제작 johnsongarage">
+  <div class="splash-main">
+    <img src="icons/walson-logo.webp" alt="" width="900" height="732">
+    <div class="splash-name">왈슨</div>
+    <div class="splash-tag">댕댕이 산책 필수앱</div>
+  </div>
+  <div class="splash-by">제작자 johnsongarage</div>
+</div>
+<script src="splash.js?v=1"></script>
 
 <div class="wrap">
   <div class="steps" aria-hidden="true"><span id="bar-1" class="is-on"></span><span id="bar-2"></span><span id="bar-3"></span></div>
@@ -478,7 +494,7 @@
     drawQr(ctx, SHARE_URL, W - 96 - 200, 684, 200);
 
     ctx.fillStyle = SOFT;
-    var footLeft = '다산동 산책 다이어리 · ' + SHARE_URL_TEXT;
+    var footLeft = '왈슨 · ' + SHARE_URL_TEXT;
     ctx.font = font(600, fitText(ctx, footLeft, 760, 30, 600));
     ctx.fillText(footLeft, 96, 934);
     ctx.font = font(600, 30);
