@@ -4,8 +4,23 @@
     {
       "name": "petwalk-dasan",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "5174", "--bind", "127.0.0.1"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5174",
+        "--bind",
+        "127.0.0.1"
+      ],
       "port": 5174
+    },
+    {
+      "name": "petwalk-admin",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "tools/admin_server.py",
+        "--no-browser"
+      ],
+      "port": 5175
     }
   ]
 }

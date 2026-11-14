@@ -1,15 +1,14 @@
-// 동네 시설 핀(인프라 지도) — town.html([동네] 지도), walk.html(산책 화면), infra-builder.html(운영자 입력 도구)이 같이 쓴다.
-// 전역 window.InfraPins. 고치면 두 파일의 `infra-pins.js?v=N` 버전을 같이 올릴 것(card-shared.js와 같은 캐시 문제).
+// 동네 스팟(시설·가게·주의 구역) — town.html([동네]), walk.html(산책 화면), start.html(수호지킴이 카드),
+// tools/spots.html(운영자 관리 도구)이 같이 쓴다. 전역 window.InfraPins.
+// 고치면 쓰는 화면들의 `infra-pins.js?v=N` 버전을 같이 올릴 것(card-shared.js와 같은 캐시 문제).
 //
-// 데이터는 두 군데서 온다:
-//   1) SEED — 이 파일에 박아둔 공용 시설. 지금은 OpenStreetMap에서 확인된 것만 넣었다(2026-11-14 조회).
-//      OSM에는 배변봉투함·음수대·반려견 동반 가게가 없어서 그 세 종류는 비어 있다 — 지어내지 않고 비워둠.
-//   2) 운영자가 infra-builder.html에서 직접 찍은 핀 — 이 기기 localStorage에만 저장된다(서버 없음).
-//      다른 사람에게도 보이게 하려면 도구의 "코드로 내보내기" 결과를 아래 SEED에 붙여넣고 배포한다.
+// 데이터는 spots-data.js(window.PETWALK_SPOTS)에서 온다 — 이 파일보다 먼저 불러야 한다(2026-11-14).
+// spots-data.js는 운영자 컴퓨터의 관리 도구가 저장하고, "모두에게 반영"을 누르면 배포된다.
+// 예전처럼 휴대폰 안(localStorage)에 따로 고쳐 둔 내용은 더 이상 읽지 않는다.
 //
-// 개인정보: 여기에는 공용 시설 좌표만 둔다. 사용자 위치는 이 파일에서 읽지도 보내지도 않는다.
+// 개인정보: 공용 시설과 가게 좌표만 둔다. 사용자 위치는 이 파일에서 읽지도 보내지도 않는다.
 (function () {
-  // 아이콘은 Phosphor Icons(MIT) regular SVG 경로를 그대로 가져온 것(index.html ICON_PATHS와 같은 방식).
+  // 아이콘은 Phosphor Icons(MIT) regular SVG 경로를 그대로 가져온 것(walk.html ICON_PATHS와 같은 방식).
   var CATEGORIES = [
     // 주의 구역(2026-11-14, 기획표 V1-21): 자전거도로 합류, 진드기 풀숲처럼 '늘 조심할 구간'을 운영자가 현장에서 찍는다.
     // 특정 가게를 위험 구역으로 찍지 않는다 — 음식점 주변 닭뼈 다발지는 일부러 뺐다(가게에 협찬을 부탁하게 되므로, 11/14 결정).
@@ -31,106 +30,10 @@
   ];
 
   // source: 'osm' = OpenStreetMap에서 가져온 것(현장 확인 전), 'field' = 운영자가 직접 가서 확인한 것.
-  // 좌표는 OSM 요소의 중심점이라 넓은 공원은 입구가 아니라 한가운데에 찍힌다.
-  var SEED = [
-    { id: 'osm-park-1', cat: 'park', name: '다산중앙공원', lat: 37.6233046, lng: 127.1596196, source: 'osm' },
-    { id: 'osm-park-2', cat: 'park', name: '다산선형공원', lat: 37.6240973, lng: 127.1513160, source: 'osm' },
-    { id: 'osm-park-3', cat: 'park', name: '다산수변공원', lat: 37.6239616, lng: 127.1452944, source: 'osm' },
-    { id: 'osm-park-4', cat: 'park', name: '다산체육공원', lat: 37.6165450, lng: 127.1487585, source: 'osm' },
-    { id: 'osm-park-5', cat: 'park', name: '도농생태유수지', lat: 37.6127701, lng: 127.1500020, source: 'osm' },
-    { id: 'osm-park-6', cat: 'park', name: '모두랑근린공원', lat: 37.6295569, lng: 127.1493806, source: 'osm' },
-    { id: 'osm-park-7', cat: 'park', name: '남양주자연체험공원', lat: 37.6321685, lng: 127.1506601, source: 'osm' },
-    { id: 'osm-park-8', cat: 'park', name: '왕숙천교 아래 쉼터', lat: 37.6171049, lng: 127.1465061, source: 'osm' },
-    { id: 'osm-park-9', cat: 'park', name: '왕숙천2교 아래 쉼터', lat: 37.6133177, lng: 127.1483133, source: 'osm' },
-    { id: 'osm-toilet-1', cat: 'toilet', name: '공중화장실', lat: 37.6204898, lng: 127.1424382, source: 'osm' },
-    { id: 'osm-toilet-2', cat: 'toilet', name: '공중화장실', lat: 37.6228246, lng: 127.1418633, source: 'osm' },
-    { id: 'osm-toilet-3', cat: 'toilet', name: '공중화장실', lat: 37.6306934, lng: 127.1448747, source: 'osm' },
-    { id: 'osm-vet-1', cat: 'vet', name: '부영동물병원', lat: 37.60844, lng: 127.16264, note: '진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.', source: 'osm' },
-    { id: 'osm-vet-2', cat: 'vet', name: '폭시팻동물병원', lat: 37.61297, lng: 127.14099, note: '진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.', source: 'osm' },
-    { id: 'osm-vet-3', cat: 'vet', name: '래플즈동물병원', lat: 37.60969, lng: 127.13675, note: '진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.', source: 'osm' }
-  ];
-
-  var CUSTOM_KEY = 'petwalk_infra_custom';
-
-  function loadCustom() {
-    try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch (e) { return []; }
-  }
-  function saveCustom(pins) {
-    try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(pins)); return true; } catch (e) { return false; }
-  }
-  // 이 기기에서 고친 내용(운영자)과 배포본(SEED)을 합친다(2026-11-14 관리자 모드).
-  //  - 같은 id가 이 기기에 있으면 그쪽이 이긴다(배포본 핀을 고친 것).
-  //  - deleted: true 는 "이 핀은 뺀다"는 표시다(배포본 핀을 지운 것).
-  // 지도 화면들은 all()만 쓰면 되고, 관리 도구는 allWithState()로 어디서 온 핀인지까지 본다.
-  function allWithState() {
-    var custom = loadCustom();
-    var byId = {};
-    custom.forEach(function (p) { if (p && p.id) byId[p.id] = p; });
-    var out = [];
-    SEED.forEach(function (p) {
-      var o = byId[p.id];
-      if (o) { delete byId[p.id]; if (!o.deleted) out.push({ pin: o, state: 'edited' }); }
-      else out.push({ pin: p, state: 'seed' });
-    });
-    custom.forEach(function (p) {
-      if (p && p.id && byId[p.id] && !p.deleted) out.push({ pin: p, state: 'new' });
-    });
-    return out;
-  }
-  function all() { return allWithState().map(function (x) { return x.pin; }); }
-
-  // ── 가게 수호지킴이(2026-11-14 가르시아) ──
-  // 단골 가게를 지키는 강아지. 동반 스팟 핀에 guardian: { name, signal, photo, line } 으로 붙는다.
-  // 가게 주인이 알려 주고 올려도 된다고 한 것만 운영자가 넣는다 — 남의 강아지 사진을 허락 없이 올리지 않는다.
-  var SIGNALS = {
-    green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
-    yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
-    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
-  };
-  function hasGuardian(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
-
-  // 팝업에 넣는 수호지킴이 칸(DOM). 지도 화면마다 CSS를 복사하지 않게 인라인 스타일로 만든다.
-  function guardianEl(pin) {
-    if (!hasGuardian(pin)) return null;
-    var g = pin.guardian;
-    var sig = SIGNALS[g.signal];
-    var box = document.createElement('div');
-    box.style.cssText = 'display:flex;align-items:center;gap:10px;margin:4px 0;padding:8px;border-radius:12px;background:#f3ddd2;';
-    var face = document.createElement('div');
-    face.style.cssText = 'flex-shrink:0;width:46px;height:46px;border-radius:50%;overflow:hidden;background:#fffaf3;' +
-      'border:3px solid ' + (sig ? sig.color : '#e6d6c1') + ';';
-    if (g.photo) {
-      var img = document.createElement('img');
-      img.src = g.photo;
-      img.alt = '';
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      face.appendChild(img);
-    }
-    var text = document.createElement('div');
-    text.style.cssText = 'min-width:0;';
-    var title = document.createElement('div');
-    title.style.cssText = 'font-size:11px;font-weight:700;color:#b8563a;';
-    title.textContent = '수호지킴이';
-    var name = document.createElement('div');
-    name.style.cssText = 'font-size:14px;font-weight:800;color:#4a3f35;';
-    name.textContent = g.name;
-    text.appendChild(title);
-    text.appendChild(name);
-    if (sig || g.line) {
-      var line = document.createElement('div');
-      line.style.cssText = 'font-size:11px;color:#6b5d4e;';
-      line.textContent = [sig ? sig.label + ' · ' + sig.line : '', g.line || ''].filter(Boolean).join(' · ');
-      text.appendChild(line);
-    }
-    var link = document.createElement('a');
-    link.href = 'start.html?guardian=' + encodeURIComponent(pin.id);
-    link.textContent = '주민증 보기';
-    link.style.cssText = 'display:inline-block;margin-top:2px;font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
-    text.appendChild(link);
-    box.appendChild(face);
-    box.appendChild(text);
-    return box;
-  }
+  var SEED = (window.PETWALK_SPOTS || []).filter(function (p) {
+    return p && p.id && typeof p.lat === 'number' && typeof p.lng === 'number';
+  });
+  function all() { return SEED.slice(); }
 
   function category(key) {
     for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].key === key) return CATEGORIES[i];
@@ -144,13 +47,14 @@
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="' + c.icon + '"/></svg>';
   }
 
-  // 지도 마커용 HTML — 두 화면에 같은 CSS를 복사하지 않으려고 인라인 스타일로 만든다.
-  function markerHtml(key) {
+  // 종류 아이콘만 있는 동그란 마커 HTML. 화면마다 CSS를 복사하지 않으려고 인라인 스타일.
+  function markerHtml(key, px) {
     var c = category(key);
     if (!c) return '';
-    return '<div style="width:28px;height:28px;border-radius:50%;background:' + c.color +
+    px = px || 28;
+    return '<div style="width:' + px + 'px;height:' + px + 'px;border-radius:50%;background:' + c.color +
       ';color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff;' +
-      'box-shadow:0 2px 6px rgba(74,63,53,0.35);">' + iconSvg(key, 15) + '</div>';
+      'box-shadow:0 2px 6px rgba(74,63,53,0.35);">' + iconSvg(key, Math.round(px * 0.54)) + '</div>';
   }
 
   function sourceText(pin) {
@@ -158,10 +62,136 @@
     return 'OpenStreetMap 기준 · 현장 확인 전';
   }
 
+  // ── 가게 수호지킴이(2026-11-14 가르시아): 단골 가게를 지키는 강아지 ──
+  // 동반 스팟에 guardian: { name, signal, photo, line } 으로 붙는다. photo는 spots/photos/의 파일 경로.
+  // 가게 주인이 알려 주고 올려도 된다고 한 것만 운영자가 넣는다.
+  var SIGNALS = {
+    green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
+    yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
+    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
+  };
+  function hasGuardian(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
+  // 지도에 내세울 사진 — 수호지킴이 사진이 먼저, 없으면 가게 사진
+  function mainPhoto(pin) {
+    if (hasGuardian(pin) && pin.guardian.photo) return pin.guardian.photo;
+    return pin.photo || null;
+  }
+  function escapeAttr(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+  function escapeText(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  // 지도 마커(2026-11-14): 동네 스타(동반 스팟)를 앞에 세운다.
+  //  - 사진이 있는 동반 스팟: 큰 동그라미 사진 + 이름표(수호지킴이 이름). 테두리는 신호등 색.
+  //  - 사진 없는 동반 스팟: 큰 종류 아이콘.
+  //  - 나머지 시설: 작고 옅게 — 배경 정보로 둔다.
+  // 돌려주는 값: { icon: L.divIcon 옵션, zIndexOffset }
+  function markerFor(pin) {
+    var photo = mainPhoto(pin);
+    if (pin.cat === 'spot' && photo) {
+      var sig = hasGuardian(pin) ? SIGNALS[pin.guardian.signal] : null;
+      var ring = sig ? sig.color : '#b8563a';
+      var label = hasGuardian(pin) ? pin.guardian.name : (pin.name || '');
+      var html =
+        '<div style="position:relative;width:58px;height:58px;">' +
+          '<div style="width:58px;height:58px;border-radius:50%;overflow:hidden;border:4px solid ' + ring + ';' +
+            'background:#f3ddd2;box-shadow:0 4px 12px rgba(74,63,53,0.4);box-sizing:border-box;">' +
+            '<img src="' + escapeAttr(photo) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+          '</div>' +
+          '<div style="position:absolute;left:50%;top:60px;transform:translateX(-50%);white-space:nowrap;' +
+            'background:#fffaf3;color:#4a3f35;border:1px solid #e6d6c1;border-radius:999px;padding:1px 8px;' +
+            'font:800 12px Pretendard,-apple-system,sans-serif;box-shadow:0 2px 6px rgba(74,63,53,0.2);">' +
+            escapeText(label) + '</div>' +
+        '</div>';
+      return { icon: { className: '', html: html, iconSize: [58, 58], iconAnchor: [29, 29], popupAnchor: [0, -28] }, zIndexOffset: 1000 };
+    }
+    if (pin.cat === 'spot') {
+      return { icon: { className: '', html: markerHtml('spot', 40), iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -18] }, zIndexOffset: 800 };
+    }
+    return { icon: { className: '', html: '<div style="opacity:0.82">' + markerHtml(pin.cat, 24) + '</div>', iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -10] }, zIndexOffset: 0 };
+  }
+
+  // 팝업(2026-11-14): 사진이 있으면 사진을 가운데에 크게 세운다. 지도 화면들이 같이 쓴다.
+  // 쓰는 법: L.marker(...).bindPopup(InfraPins.popupEl(pin), InfraPins.POPUP_OPTS)
+  var POPUP_OPTS = { minWidth: 230, maxWidth: 260 };
+  function el(tag, css, text) {
+    var e = document.createElement(tag);
+    if (css) e.style.cssText = css;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function popupEl(pin) {
+    var cat = category(pin.cat) || { label: '', color: '#6b5d4e' };
+    var wrap = el('div', 'display:flex;flex-direction:column;gap:5px;font:13px/1.45 Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:#4a3f35;');
+    var photo = mainPhoto(pin);
+    var g = hasGuardian(pin) ? pin.guardian : null;
+    var sig = g ? SIGNALS[g.signal] : null;
+
+    if (photo) {
+      var frame = el('div', 'position:relative;margin:-2px -2px 4px;border-radius:14px;overflow:hidden;background:#f3ddd2;' +
+        'aspect-ratio:1/1;' + (sig ? 'box-shadow:inset 0 -6px 0 ' + sig.color + ';' : ''));
+      var img = el('img', 'width:100%;height:100%;object-fit:cover;display:block;');
+      img.src = photo;
+      img.alt = g ? g.name : (pin.name || '');
+      frame.appendChild(img);
+      if (g) {
+        frame.appendChild(el('div', 'position:absolute;left:8px;top:8px;background:rgba(255,250,243,0.92);color:#b8563a;' +
+          'border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;', '수호지킴이'));
+      }
+      wrap.appendChild(frame);
+    }
+    if (g) {
+      wrap.appendChild(el('div', 'font-size:20px;font-weight:800;letter-spacing:-0.01em;', g.name));
+      if (sig) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:' + sig.color + ';', sig.label + ' · ' + sig.line));
+      if (g.line) wrap.appendChild(el('div', 'font-size:13px;', '“' + g.line + '”'));
+      var shop = el('div', 'font-size:13px;color:#6b5d4e;margin-top:2px;');
+      shop.appendChild(el('span', 'font-weight:700;color:' + cat.color + ';', cat.label));
+      shop.appendChild(document.createTextNode(' · ' + (pin.name || '')));
+      wrap.appendChild(shop);
+    } else {
+      wrap.appendChild(el('div', 'font-size:11px;font-weight:700;color:' + cat.color + ';', cat.label));
+      wrap.appendChild(el('div', 'font-size:' + (photo ? 18 : 14) + 'px;font-weight:800;', pin.name || cat.label));
+    }
+    if (pin.tags && pin.tags.length) {
+      var tags = el('div', 'display:flex;flex-wrap:wrap;gap:4px;');
+      pin.tags.forEach(function (t) {
+        tags.appendChild(el('span', 'font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#efe0cd;', t));
+      });
+      wrap.appendChild(tags);
+    }
+    if (pin.note) wrap.appendChild(el('div', '', pin.note));
+    // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
+    wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', sourceText(pin)));
+
+    var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
+    var linkCss = 'font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
+    if (g) {
+      var card = el('a', linkCss, '주민증 보기');
+      card.href = 'start.html?guardian=' + encodeURIComponent(pin.id);
+      links.appendChild(card);
+    }
+    // 길찾기는 카카오맵 웹 링크 — 넘기는 건 이 장소의 이름·좌표뿐이고 내 위치는 넣지 않는다
+    var nav = el('a', linkCss, '길찾기');
+    nav.href = 'https://map.kakao.com/link/to/' + encodeURIComponent(pin.name || cat.label) + ',' + pin.lat + ',' + pin.lng;
+    nav.target = '_blank';
+    nav.rel = 'noopener';
+    links.appendChild(nav);
+    if (pin.phone) {
+      var tel = el('a', linkCss, '전화 걸기');
+      tel.href = 'tel:' + String(pin.phone).replace(/[^0-9+]/g, '');
+      links.appendChild(tel);
+    }
+    wrap.appendChild(links);
+    return wrap;
+  }
+
+  // 운영자 컴퓨터에서 연 화면인지(관리 도구 링크를 보일지). 배포된 사이트에서는 항상 false.
+  function isLocalAdmin() {
+    return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  }
+
   window.InfraPins = {
-    CATEGORIES: CATEGORIES, SEED: SEED, CUSTOM_KEY: CUSTOM_KEY,
-    loadCustom: loadCustom, saveCustom: saveCustom, all: all, allWithState: allWithState,
-    SIGNALS: SIGNALS, hasGuardian: hasGuardian, guardianEl: guardianEl,
-    category: category, iconSvg: iconSvg, markerHtml: markerHtml, sourceText: sourceText
+    CATEGORIES: CATEGORIES, SEED: SEED, all: all,
+    category: category, iconSvg: iconSvg, markerHtml: markerHtml, markerFor: markerFor, sourceText: sourceText,
+    SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
+    popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isLocalAdmin: isLocalAdmin
   };
 })();

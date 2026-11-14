@@ -14,7 +14,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
-<script src="infra-pins.js?v=3"></script>
+<script src="spots-data.js"></script>
+<script src="infra-pins.js?v=4"></script>
 <script src="demo-geo.js?v=1"></script>
 
 <!-- 본문용 Pretendard(한국어 웹에서 널리 쓰이는 서체, 시스템 기본 서체보다 완성도 높음)
@@ -414,7 +415,7 @@
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
       <a href="course-builder.html" class="tool-item" data-admin hidden><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
-      <a href="infra-builder.html" class="tool-item" data-admin hidden><span class="icon" data-icon="mapPin"></span><span>스팟 관리 (관리자)</span></a>
+      <a href="tools/spots.html" class="tool-item" data-admin hidden><span class="icon" data-icon="mapPin"></span><span>스팟 관리 (내 컴퓨터)</span></a>
     </div>
   </div>
 </div>
@@ -554,9 +555,9 @@
   window.addEventListener('resize', positionZoomControl);
 
   // 메뉴 버튼을 누르면 드롭다운 토글, 바깥을 클릭하면 닫힘.
-  // 관리자 도구 링크는 운영자 기기(관리자 모드)에서만 보인다 — infra-builder.html을 열면 켜진다
+  // 관리자 도구 링크는 운영자 컴퓨터(localhost)에서 열었을 때만 보인다 — 배포된 사이트에서는 숨김
   try {
-    if (localStorage.getItem('petwalk_admin') === '1') {
+    if (InfraPins.isLocalAdmin()) {
       Array.prototype.forEach.call(document.querySelectorAll('[data-admin]'), function (a) { a.hidden = false; });
     }
   } catch (e) { /* 링크만 안 보인다 */ }
@@ -819,65 +820,8 @@
     try { localStorage.setItem(INFRA_FILTER_KEY, JSON.stringify(Object.keys(infraHidden))); } catch (e) { /* 저장 실패해도 화면엔 반영됨 */ }
   }
 
-  function buildInfraPopup(pin) {
-    var cat = InfraPins.category(pin.cat);
-    var wrap = document.createElement('div');
-    wrap.className = 'infra-popup';
-
-    var catEl = document.createElement('div');
-    catEl.className = 'infra-popup-cat';
-    catEl.style.color = cat.color;
-    catEl.textContent = cat.label;
-    wrap.appendChild(catEl);
-
-    var nameEl = document.createElement('div');
-    nameEl.className = 'infra-popup-name';
-    nameEl.textContent = pin.name || cat.label;
-    wrap.appendChild(nameEl);
-
-    if (pin.tags && pin.tags.length) {
-      var tagsEl = document.createElement('div');
-      tagsEl.className = 'infra-popup-tags';
-      pin.tags.forEach(function (t) {
-        var s = document.createElement('span');
-        s.textContent = t;
-        tagsEl.appendChild(s);
-      });
-      wrap.appendChild(tagsEl);
-    }
-    if (pin.note) {
-      var noteEl = document.createElement('div');
-      noteEl.className = 'infra-popup-note';
-      noteEl.textContent = pin.note;
-      wrap.appendChild(noteEl);
-    }
-
-    var guardian = InfraPins.guardianEl(pin); // 가게 수호지킴이(있을 때만)
-    if (guardian) wrap.appendChild(guardian);
-    // 출처를 항상 보여준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함.
-    var srcEl = document.createElement('div');
-    srcEl.className = 'infra-popup-source';
-    srcEl.textContent = InfraPins.sourceText(pin);
-    wrap.appendChild(srcEl);
-
-    var links = document.createElement('div');
-    links.className = 'infra-popup-links';
-    // 길찾기는 카카오맵 웹 링크로 연다 — 넘기는 건 이 공용 시설의 이름·좌표뿐이고 사용자 위치는 넣지 않는다.
-    var nav = document.createElement('a');
-    nav.href = 'https://map.kakao.com/link/to/' + encodeURIComponent(pin.name || cat.label) + ',' + pin.lat + ',' + pin.lng;
-    nav.target = '_blank';
-    nav.rel = 'noopener';
-    nav.textContent = '길찾기';
-    links.appendChild(nav);
-    if (pin.phone) {
-      var tel = document.createElement('a');
-      tel.href = 'tel:' + String(pin.phone).replace(/[^0-9+]/g, '');
-      tel.textContent = '전화 걸기';
-      links.appendChild(tel);
-    }
-    wrap.appendChild(links);
-    return wrap;
-  }
+  // 팝업은 [동네]와 같은 모양(사진 중심) — infra-pins.js가 만든다
+  function buildInfraPopup(pin) { return InfraPins.popupEl(pin); }
 
   function syncInfraVisibility() {
     var zoomOk = map.getZoom() >= INFRA_MIN_ZOOM;
@@ -898,9 +842,9 @@
       if (!InfraPins.category(pin.cat) || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return;
       if (!infraLayers[pin.cat]) infraLayers[pin.cat] = L.layerGroup();
       counts[pin.cat] = (counts[pin.cat] || 0) + 1;
-      var icon = L.divIcon({ className: '', html: InfraPins.markerHtml(pin.cat), iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -12] });
-      L.marker([pin.lat, pin.lng], { icon: icon, title: pin.name || '' })
-        .bindPopup(buildInfraPopup(pin))
+      var m = InfraPins.markerFor(pin); // 동반 스팟은 크게, 나머지는 작게
+      L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: m.zIndexOffset })
+        .bindPopup(buildInfraPopup(pin), InfraPins.POPUP_OPTS)
         .addTo(infraLayers[pin.cat]);
     });
 

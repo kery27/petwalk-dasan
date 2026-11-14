@@ -12,7 +12,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
-<script src="infra-pins.js?v=3"></script>
+<script src="spots-data.js"></script>
+<script src="infra-pins.js?v=4"></script>
 <script src="demo-geo.js?v=1"></script>
 <style>
   /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
@@ -77,8 +78,29 @@
   }
   .side button:active { transform: scale(0.94); }
 
+  /* 동네 스타 — 사진이 있는 동반 스팟(가게 수호지킴이)을 지도 아래에 줄 세워 먼저 보여 준다(2026-11-14) */
+  .stars {
+    position: fixed; left: 0; right: 0; bottom: calc(var(--tabbar-h, 58px) + 10px); z-index: 1000;
+    display: flex; gap: 10px; overflow-x: auto; padding: 4px 14px 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .stars[hidden] { display: none; }
+  .stars::-webkit-scrollbar { display: none; }
+  .star {
+    flex-shrink: 0; display: flex; align-items: center; gap: 10px; width: 210px;
+    padding: 8px 12px 8px 8px; border-radius: 18px; border: 1px solid var(--panel-border);
+    background: var(--panel); color: var(--ink); font-family: inherit; text-align: left; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.18);
+  }
+  .star:active { transform: scale(0.98); }
+  .star img { flex-shrink: 0; width: 56px; height: 56px; border-radius: 14px; object-fit: cover; border: 3px solid var(--accent); }
+  .star .t1 { font-size: 11px; font-weight: 800; color: var(--accent); }
+  .star .t2 { font-size: 16px; font-weight: 800; line-height: 1.25; }
+  .star .t3 { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+  .leaflet-popup-content { margin: 12px 12px 10px; }
+
   .tool-link {
-    position: fixed; left: 12px; bottom: calc(var(--tabbar-h, 58px) + 8px); z-index: 1000;
+    position: fixed; left: 14px; top: 122px; z-index: 1000;
     font-size: 11px; color: var(--ink-soft); background: rgba(255, 250, 243, 0.85);
     padding: 3px 8px; border-radius: var(--radius-pill); text-decoration: none;
   }
@@ -116,8 +138,9 @@
     <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232,120H215.63A88.13,88.13,0,0,0,136,40.37V24a8,8,0,0,0-16,0V40.37A88.13,88.13,0,0,0,40.37,120H24a8,8,0,0,0,0,16H40.37A88.13,88.13,0,0,0,120,215.63V232a8,8,0,0,0,16,0V215.63A88.13,88.13,0,0,0,215.63,136H232a8,8,0,0,0,0-16Zm-104,80a72,72,0,1,1,72-72A72.08,72.08,0,0,1,128,200Zm0-112a40,40,0,1,0,40,40A40,40,0,0,0,128,88Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,152Z"/></svg>
   </button>
 </div>
-<!-- 운영자 도구 — 현장에서 시설·주의 구역을 찍을 때 쓴다. 당분간만 보이게 둔다. -->
-<a class="tool-link" id="tool-link" href="infra-builder.html" hidden>스팟 관리 (관리자)</a>
+<div class="stars" id="stars" hidden aria-label="동네 스타"></div>
+<!-- 운영자 도구 링크 — 운영자 컴퓨터(localhost)에서 열었을 때만 보인다. 배포된 사이트에는 도구 자체가 없다. -->
+<a class="tool-link" id="tool-link" href="tools/spots.html" hidden>스팟 관리 (내 컴퓨터)</a>
 
 <script src="tabbar.js?v=1" data-tab="town"></script>
 <script>
@@ -129,12 +152,8 @@
   var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';  // 위치 쓰는 이유를 이미 설명했는지
   var MIN_ZOOM_FOR_PINS = 13;
 
-  // 관리자 모드(운영자 기기 표시): infra-builder.html을 한 번 열면 켜지고, 거기서 끌 수 있다.
-  // 주소 뒤에 ?admin=1 을 붙여도 켜진다. 잠금이 아니라 일반 사용자 화면에서 도구 링크를 치워 두는 용도다.
-  try {
-    if (/[?&]admin=1/.test(location.search)) localStorage.setItem('petwalk_admin', '1');
-    document.getElementById('tool-link').hidden = localStorage.getItem('petwalk_admin') !== '1';
-  } catch (e) { /* 링크만 안 보인다 */ }
+  // 스팟 관리 도구는 운영자 컴퓨터에서만 돈다(tools/admin_server.py) — 그때만 링크를 보인다
+  document.getElementById('tool-link').hidden = !InfraPins.isLocalAdmin();
 
   function loadJSON(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
@@ -159,55 +178,48 @@
     marker.addTo(layers[key]);
   }
 
-  function infraPopup(pin) {
-    var cat = InfraPins.category(pin.cat);
-    var wrap = document.createElement('div');
-    wrap.className = 'popup';
-    var catEl = document.createElement('div');
-    catEl.className = 'popup-cat';
-    catEl.style.color = cat.color;
-    catEl.textContent = cat.label;
-    wrap.appendChild(catEl);
-    var nameEl = document.createElement('div');
-    nameEl.className = 'popup-name';
-    nameEl.textContent = pin.name || cat.label;
-    wrap.appendChild(nameEl);
-    if (pin.tags && pin.tags.length) {
-      var tagsEl = document.createElement('div');
-      tagsEl.className = 'popup-tags';
-      pin.tags.forEach(function (t) { var s = document.createElement('span'); s.textContent = t; tagsEl.appendChild(s); });
-      wrap.appendChild(tagsEl);
-    }
-    if (pin.note) { var noteEl = document.createElement('div'); noteEl.textContent = pin.note; wrap.appendChild(noteEl); }
-    var guardian = InfraPins.guardianEl(pin); // 가게 수호지킴이(있을 때만)
-    if (guardian) wrap.appendChild(guardian);
-    // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
-    var srcEl = document.createElement('div');
-    srcEl.className = 'popup-source';
-    srcEl.textContent = InfraPins.sourceText(pin);
-    wrap.appendChild(srcEl);
-    var links = document.createElement('div');
-    links.className = 'popup-links';
-    // 길찾기는 카카오맵 웹 링크 — 넘기는 건 이 공용 시설의 이름·좌표뿐이고 내 위치는 넣지 않는다
-    var nav = document.createElement('a');
-    nav.href = 'https://map.kakao.com/link/to/' + encodeURIComponent(pin.name || cat.label) + ',' + pin.lat + ',' + pin.lng;
-    nav.target = '_blank'; nav.rel = 'noopener'; nav.textContent = '길찾기';
-    links.appendChild(nav);
-    if (pin.phone) {
-      var tel = document.createElement('a');
-      tel.href = 'tel:' + String(pin.phone).replace(/[^0-9+]/g, '');
-      tel.textContent = '전화 걸기';
-      links.appendChild(tel);
-    }
-    wrap.appendChild(links);
-    return wrap;
-  }
-
+  // 마커와 팝업 모양은 infra-pins.js가 정한다: 동반 스팟(특히 사진 있는 가게 강아지)이 크고 앞에,
+  // 나머지 시설은 작고 옅게. 팝업은 사진을 가운데 크게.
+  var spotMarkers = {}; // 스팟 id → 마커(아래 '동네 스타' 줄에서 누르면 그 자리로 가서 연다)
   InfraPins.all().forEach(function (pin) {
-    if (!InfraPins.category(pin.cat) || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return;
-    var icon = L.divIcon({ className: '', html: InfraPins.markerHtml(pin.cat), iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -12] });
-    addTo(pin.cat, L.marker([pin.lat, pin.lng], { icon: icon, title: pin.name || '' }).bindPopup(infraPopup(pin)));
+    if (!InfraPins.category(pin.cat)) return;
+    var m = InfraPins.markerFor(pin);
+    var marker = L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: m.zIndexOffset })
+      .bindPopup(InfraPins.popupEl(pin), InfraPins.POPUP_OPTS);
+    spotMarkers[pin.id] = marker;
+    addTo(pin.cat, marker);
   });
+
+  // ── 동네 스타: 사진이 있는 동반 스팟을 지도 아래에 줄 세운다 ──
+  var starsEl = document.getElementById('stars');
+  var stars = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.mainPhoto(p); });
+  stars.forEach(function (pin) {
+    var g = InfraPins.hasGuardian(pin) ? pin.guardian : null;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'star';
+    var img = document.createElement('img');
+    img.src = InfraPins.mainPhoto(pin);
+    img.alt = '';
+    var sig = g ? InfraPins.SIGNALS[g.signal] : null;
+    if (sig) img.style.borderColor = sig.color;
+    var text = document.createElement('span');
+    var t1 = document.createElement('span'); t1.className = 't1'; t1.textContent = g ? '수호지킴이' : '동반 스팟';
+    var t2 = document.createElement('span'); t2.className = 't2'; t2.textContent = g ? g.name : (pin.name || '');
+    var t3 = document.createElement('span'); t3.className = 't3'; t3.textContent = g ? (pin.name || '') : (pin.tags || []).join(' · ');
+    [t1, t2, t3].forEach(function (t) { t.style.display = 'block'; text.appendChild(t); });
+    btn.appendChild(img);
+    btn.appendChild(text);
+    btn.addEventListener('click', function () {
+      // 동반 스팟을 꺼 두었더라도 누르면 다시 켠다
+      if (hidden.spot) { delete hidden.spot; saveHidden(); refreshChips(); }
+      map.setView([pin.lat, pin.lng], Math.max(map.getZoom(), 16), { animate: true });
+      sync();
+      setTimeout(function () { spotMarkers[pin.id].openPopup(); }, 300);
+    });
+    starsEl.appendChild(btn);
+  });
+  starsEl.hidden = !stars.length;
 
   // 내 발도장 — 자라는 카드의 장소 도장(reward-rules.js PLACES)과 같은 판정. 지나간 곳은 채워서 보여 준다.
   var STAMP_SVG = '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm72,0a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm23.12,60.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72Z"/></svg>';
@@ -256,7 +268,10 @@
 
   // 칩: 핀이 하나도 없는 종류는 만들지 않는다(눌러도 아무것도 안 나오는 버튼을 두지 않기 위함)
   var chipsEl = document.getElementById('chips');
-  var chipDefs = InfraPins.CATEGORIES.map(function (c) {
+  // 동반 스팟(동네 스타)을 맨 앞에 둔다
+  var orderedCats = InfraPins.CATEGORIES.filter(function (c) { return c.key === 'spot'; })
+    .concat(InfraPins.CATEGORIES.filter(function (c) { return c.key !== 'spot'; }));
+  var chipDefs = orderedCats.map(function (c) {
     return { key: c.key, label: c.label, color: c.color, iconHtml: InfraPins.iconSvg(c.key, 11) };
   }).concat([
     { key: 'stamp', label: '내 발도장', color: '#b8563a', iconHtml: '' },
@@ -282,8 +297,14 @@
       saveHidden();
       sync();
     });
+    chip.setAttribute('data-key', def.key);
     chipsEl.appendChild(chip);
   });
+  function refreshChips() {
+    Array.prototype.forEach.call(chipsEl.querySelectorAll('.chip'), function (c) {
+      c.setAttribute('aria-pressed', hidden[c.getAttribute('data-key')] ? 'false' : 'true');
+    });
+  }
   map.on('zoomend', sync);
   sync();
 
