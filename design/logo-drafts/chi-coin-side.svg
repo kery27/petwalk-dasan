@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="으르렁 치와와 동전, 옆얼굴">
+<title>으르렁 치와와 동전, 옆얼굴</title>
+<defs><clipPath id="chiBust"><circle cx="194" cy="194" r="144"/><rect x="0" y="0" width="400" height="194"/></clipPath>
+<clipPath id="sHead"><path d="M144 134 C144 106 170 84 210 84 C254 84 290 108 296 148 C299 180 292 216 272 244 C258 264 238 280 214 294 C190 310 160 322 138 318 C124 316 113 302 114 286 C115 272 113 262 110 252 C102 246 95 238 94 226 C92 212 97 200 108 197 C116 194 121 190 124 184 C117 172 118 154 128 146 C134 142 142 140 144 134 Z"/></clipPath>
+<clipPath id="sNeck"><path d="M268 216 C282 250 292 276 306 298 C318 316 336 330 364 340 L364 400 L160 400 C178 378 194 352 200 326 C202 316 204 306 204 294 Z"/></clipPath>
+<clipPath id="sMouth"><path d="M112 252 C120 240 136 236 150 240 C170 244 190 252 206 266 C200 284 184 300 160 306 C144 310 126 304 120 290 C116 278 112 264 112 252 Z"/></clipPath>
+<clipPath id="sEyeN"><circle cx="208" cy="168" r="31"/></clipPath>
+<clipPath id="sEyeF"><ellipse cx="139" cy="166" rx="17" ry="24"/></clipPath>
+</defs>
+
+<circle cx="206" cy="204" r="176" style="fill: #c47d1c; stroke: #5a3210; stroke-width: 5"/>
+<path d="M320.2 71.3l12 10M328.8 80.9l12 10M336.8 91.1l12 10M343.9 101.8l12 10M350.3 113.0l12 10M355.8 124.7l12 10M360.4 136.7l12 10M364.2 149.1l12 10M367.0 161.6l12 10M368.9 174.4l12 10M369.9 187.3l12 10M369.9 200.2l12 10M369.0 213.0l12 10M367.1 225.8l12 10M364.3 238.4l12 10M360.6 250.7l12 10M356.0 262.8l12 10M350.5 274.5l12 10M344.2 285.7l12 10M337.1 296.5l12 10M329.2 306.7l12 10M320.6 316.3l12 10M311.3 325.2l12 10M301.4 333.5l12 10M290.9 340.9l12 10M279.8 347.6l12 10M268.4 353.5l12 10M256.5 358.5l12 10M244.3 362.7l12 10M231.8 365.9l12 10M219.1 368.2l12 10M206.3 369.6l12 10M193.4 370.0l12 10M180.5 369.5l12 10M167.7 368.0l12 10M155.0 365.6l12 10M142.5 362.3l12 10M130.3 358.1l12 10M118.5 353.0l12 10M107.1 347.0l12 10" style="fill: none; stroke: #5a3210; stroke-width: 2.6; stroke-opacity: 0.6"/>
+<circle cx="194" cy="194" r="176" style="fill: #f6c244; stroke: #5a3210; stroke-width: 5"/>
+<path d="M36.5 227.5A161 161 0 0 1 104.0 60.5" style="fill: none; stroke: #fde391; stroke-width: 9; stroke-linecap: round"/>
+<path d="M120.9 50.5A161 161 0 0 1 128.5 46.9" style="fill: none; stroke: #fde391; stroke-width: 9; stroke-linecap: round"/>
+<circle cx="194" cy="194" r="146" style="fill: #ec9c2c; stroke: #5a3210; stroke-width: 5"/>
+<g style="fill: #5a3210"><circle cx="144.2" cy="40.9" r="4.2"/><circle cx="168.8" cy="35.0" r="4.2"/><circle cx="194.0" cy="33.0" r="4.2"/><circle cx="219.2" cy="35.0" r="4.2"/><circle cx="243.8" cy="40.9" r="4.2"/></g>
+<g clip-path="url(#chiBust)">
+<!-- 목과 어깨 -->
+<path d="M268 216 C282 250 292 276 306 298 C318 316 336 330 364 340 L364 400 L160 400 C178 378 194 352 200 326 C202 316 204 306 204 294 Z" style="fill: #f9d05c"/>
+<g clip-path="url(#sNeck)">
+  <path d="M204 296 C206 312 204 330 196 348 C190 362 178 382 162 400 L206 400 C218 376 226 350 226 328 C224 316 216 304 204 296 Z" style="fill: #fff2c8"/>
+  <path d="M144 134 C144 106 170 84 210 84 C254 84 290 108 296 148 C299 180 292 216 272 244 C258 264 238 280 214 294 C190 310 160 322 138 318 C124 316 113 302 114 286 C115 272 113 262 110 252 C102 246 95 238 94 226 C92 212 97 200 108 197 C116 194 121 190 124 184 C117 172 118 154 128 146 C134 142 142 140 144 134 Z" transform="translate(10 24)" style="fill: rgba(190, 112, 26, 0.42)"/>
+</g>
+<path d="M268 216 C282 250 292 276 306 298 C318 316 336 330 364 340 L364 400 L160 400 C178 378 194 352 200 326 C202 316 204 306 204 294 Z" style="fill: none; stroke: #5a3210; stroke-width: 5; stroke-linejoin: round"/>
+<!-- 먼 쪽 귀 -->
+<path d="M200 88 C176 66 136 58 108 70 C102 74 102 82 106 88 C118 104 134 118 150 128 Z" style="fill: #eba93c; stroke: #5a3210; stroke-width: 5; stroke-linejoin: round"/>
+<path d="M186 87 C166 73 137 69 117 77 C115 80 116 84 120 88 C130 100 142 110 154 116 Z" style="fill: #d9805a"/>
+<!-- 머리 -->
+<path d="M144 134 C144 106 170 84 210 84 C254 84 290 108 296 148 C299 180 292 216 272 244 C258 264 238 280 214 294 C190 310 160 322 138 318 C124 316 113 302 114 286 C115 272 113 262 110 252 C102 246 95 238 94 226 C92 212 97 200 108 197 C116 194 121 190 124 184 C117 172 118 154 128 146 C134 142 142 140 144 134 Z" style="fill: #f9d05c"/>
+<g clip-path="url(#sHead)">
+  <path d="M290 140 C300 180 294 216 274 246 C260 266 238 282 212 298 C236 270 256 244 264 214 C270 190 270 166 262 140 Z" style="fill: #eba93c"/>
+  <path d="M156 124 C162 108 178 96 196 92 C184 100 174 112 168 128 Z" style="fill: #ffe696"/>
+  <path d="M124 184 C150 194 182 212 214 250 C230 268 228 290 214 298 L120 330 L80 280 L80 196 Z" style="fill: #fff2c8"/>
+  <path d="M178 106 C168 124 163 150 164 174 C166 181 170 181 172 174 C173 150 178 126 186 108 C184 103 180 103 178 106 Z" style="fill: #fff2c8"/>
+</g>
+<path d="M144 134 C144 106 170 84 210 84 C254 84 290 108 296 148 C299 180 292 216 272 244 C258 264 238 280 214 294 C190 310 160 322 138 318 C124 316 113 302 114 286 C115 272 113 262 110 252 C102 246 95 238 94 226 C92 212 97 200 108 197 C116 194 121 190 124 184 C117 172 118 154 128 146 C134 142 142 140 144 134 Z" style="fill: none; stroke: #5a3210; stroke-width: 5; stroke-linejoin: round"/>
+<!-- 가까운 쪽 귀 (머리 앞에) -->
+<path d="M230 92 C250 66 300 66 328 94 C332 116 318 142 296 158 C276 150 250 126 230 92 Z" style="fill: #f9d05c; stroke: #5a3210; stroke-width: 5; stroke-linejoin: round"/>
+<path d="M247 96 C263 81 298 81 317 99 C319 114 310 133 294 145 C278 137 261 119 247 96 Z" style="fill: #f4a983"/>
+<path d="M251 103 C263 120 278 135 294 143 C300 137 306 129 309 121 C292 108 271 101 251 103 Z" style="fill: #d9805a"/>
+<path d="M276 122 C290 112 304 106 316 104" style="fill: none; stroke: #d9805a; stroke-width: 3; stroke-linecap: round"/>
+<!-- 먼 쪽 눈 -->
+<ellipse cx="139" cy="166" rx="17" ry="24" style="fill: #fff8e6"/>
+<ellipse cx="138" cy="167" rx="14" ry="20.5" style="fill: #4a2812"/>
+<ellipse cx="138" cy="167" rx="9.5" ry="13.5" style="fill: #2a1708"/>
+<path d="M166 174.5 L114 142.3 L114 120 L166 120 Z" clip-path="url(#sEyeF)" style="fill: #eba93c"/>
+<ellipse cx="139" cy="166" rx="17" ry="24" style="fill: none; stroke: #5a3210; stroke-width: 4.5"/>
+<path d="M161 171.4 L122 147.2" style="fill: none; stroke: #5a3210; stroke-width: 7; stroke-linecap: round"/>
+<circle cx="133" cy="171" r="5" style="fill: #ffffff"/>
+<!-- 가까운 쪽 눈 -->
+<circle cx="208" cy="168" r="31" style="fill: #fff8e6"/>
+<circle cx="205" cy="169" r="27" style="fill: #4a2812"/>
+<circle cx="205" cy="169" r="18.5" style="fill: #2a1708"/>
+<path d="M166 178.3 L248 141.3 L248 120 L166 120 Z" clip-path="url(#sEyeN)" style="fill: #eba93c"/>
+<circle cx="208" cy="168" r="31" style="fill: none; stroke: #5a3210; stroke-width: 4.5"/>
+<path d="M171 176 L240 144.9" style="fill: none; stroke: #5a3210; stroke-width: 8.5; stroke-linecap: round"/>
+<circle cx="199" cy="177" r="7.5" style="fill: #ffffff"/><circle cx="218" cy="188" r="3.6" style="fill: #ffffff"/>
+<!-- 콧등 주름, 입술 주름 -->
+<path d="M158 186 Q155 194 163 201" style="fill: none; stroke: #a8661f; stroke-width: 3; stroke-linecap: round"/>
+<path d="M146 192 Q143 200 150 207" style="fill: none; stroke: #a8661f; stroke-width: 3; stroke-linecap: round"/>
+<path d="M128 228 C144 219 166 221 184 234" style="fill: none; stroke: #a8661f; stroke-width: 3; stroke-linecap: round"/>
+<path d="M214 266 C220 276 218 288 208 298" style="fill: none; stroke: #a8661f; stroke-width: 3; stroke-linecap: round"/>
+<!-- 코 -->
+<ellipse cx="106" cy="212" rx="17" ry="13" transform="rotate(-12 106 212)" style="fill: #2a1708"/>
+<ellipse cx="101" cy="206" rx="6" ry="3" transform="rotate(-12 101 206)" style="fill: #ffffff; fill-opacity: 0.55"/>
+<!-- 입 -->
+<path d="M112 252 C120 240 136 236 150 240 C170 244 190 252 206 266 C200 284 184 300 160 306 C144 310 126 304 120 290 C116 278 112 264 112 252 Z" style="fill: #5c1f16"/>
+<g clip-path="url(#sMouth)">
+  <path d="M108 256 C120 240 136 236 150 240 C170 244 190 252 210 268 L204 270 C190 258 170 251 150 247 C136 244 124 248 116 258 Z" style="fill: #e2725a"/>
+  <path d="M134 302 C136 284 152 275 168 280 C182 284 192 290 196 298 C182 308 150 314 134 302 Z" style="fill: #e2725a"/>
+  <path d="M124 247 L146 245 L146 252 Q143 259 139.5 252.6 Q136 259 132.5 253.4 Q129 259 125 254 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/>
+  <path d="M113 254 C114 261 116 267 119 272 C121 266 123 259 123 251 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/>
+  <path d="M149 244 C150 258 154 272 160 283 C163 272 165 259 165 248 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/>
+  <path d="M168 250 L172 259 L177 252 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/><path d="M179 253 L183 262 L188 256 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/><path d="M190 257 L193 265 L198 261 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/>
+  <path d="M120 292 Q123 283 127 289 Q130 282 133 290 Q136 284 139 292 L142 306 L122 300 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/>
+  <path d="M142 307 C143 296 146 286 150 278 C154 286 157 296 159 306 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/>
+  <path d="M164 305 L168 296 L172 304 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/><path d="M175 302 L179 293 L183 300 Z" style="fill: #fffbf0; stroke: #a8661f; stroke-width: 1.5; stroke-linejoin: round"/>
+</g>
+<path d="M112 252 C120 240 136 236 150 240 C170 244 190 252 206 266 C200 284 184 300 160 306 C144 310 126 304 120 290 C116 278 112 264 112 252 Z" style="fill: none; stroke: #2a1708; stroke-width: 5; stroke-linejoin: round"/>
+<circle cx="138" cy="231" r="2" style="fill: #a8661f"/><circle cx="148" cy="229" r="2" style="fill: #a8661f"/><circle cx="158" cy="232" r="2" style="fill: #a8661f"/>
+</g>
+<path d="M48 194A146 146 0 0 0 340 194" style="fill: none; stroke: #5a3210; stroke-width: 5"/>
+</svg>
