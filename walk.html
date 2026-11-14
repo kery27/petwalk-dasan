@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
-<script src="infra-pins.js?v=2"></script>
+<script src="infra-pins.js?v=3"></script>
 <script src="demo-geo.js?v=1"></script>
 
 <!-- 본문용 Pretendard(한국어 웹에서 널리 쓰이는 서체, 시스템 기본 서체보다 완성도 높음)
@@ -413,8 +413,8 @@
       <a href="#" id="install-link" hidden><span class="icon" data-icon="plus"></span><span>홈 화면에 추가</span></a>
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
-      <a href="course-builder.html" class="tool-item"><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
-      <a href="infra-builder.html" class="tool-item"><span class="icon" data-icon="mapPin"></span><span>시설 핀 관리</span></a>
+      <a href="course-builder.html" class="tool-item" data-admin hidden><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
+      <a href="infra-builder.html" class="tool-item" data-admin hidden><span class="icon" data-icon="mapPin"></span><span>스팟 관리 (관리자)</span></a>
     </div>
   </div>
 </div>
@@ -446,7 +446,9 @@
   <ul id="reward-list"></ul>
   <p class="reward-next" id="reward-next"></p>
   <div class="reward-actions">
-    <a class="btn btn-secondary" href="my-card.html">내 카드 보기</a>
+    <!-- 끝난 직후 물어볼 것(충분했나·킁킁·응가)은 끝 화면에서 한 번에 묻는다(C안, 기획표 V1-19) -->
+    <a class="btn btn-secondary" href="my-card.html" style="margin-right:8px;">내 카드 보기</a>
+    <a class="btn btn-primary" href="walk-end.html">산책 마무리하기</a>
   </div>
 </div>
 
@@ -552,6 +554,13 @@
   window.addEventListener('resize', positionZoomControl);
 
   // 메뉴 버튼을 누르면 드롭다운 토글, 바깥을 클릭하면 닫힘.
+  // 관리자 도구 링크는 운영자 기기(관리자 모드)에서만 보인다 — infra-builder.html을 열면 켜진다
+  try {
+    if (localStorage.getItem('petwalk_admin') === '1') {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-admin]'), function (a) { a.hidden = false; });
+    }
+  } catch (e) { /* 링크만 안 보인다 */ }
+
   menuBtn.addEventListener('click', function (e) {
     e.stopPropagation();
     var willOpen = !menuDropdown.classList.contains('is-open');
@@ -843,6 +852,8 @@
       wrap.appendChild(noteEl);
     }
 
+    var guardian = InfraPins.guardianEl(pin); // 가게 수호지킴이(있을 때만)
+    if (guardian) wrap.appendChild(guardian);
     // 출처를 항상 보여준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함.
     var srcEl = document.createElement('div');
     srcEl.className = 'infra-popup-source';

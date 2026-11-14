@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 중</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 산책 중 전용 화면(2026-11-14, 기획표 V1-18 — 화면 구조 C안: SPEC_STAGE0.md 4절).
+     하단 탭이 없다. 할 일은 하나: 끝내기. 지도도 없고 위치도 읽지 않는다.
+     "시간만" 산책이 기본이다 — 시작 시각만 저장해 두고(petwalk_active_walk) 지금 시각과의 차이로 시간을
+     보여 주므로, 화면을 끄거나 앱을 닫아도 시간은 맞는다. 길(GPS)까지 남기려면 walk.html로 간다.
+     끝내면 기록을 petwalk_walks에 넣고 끝 화면(walk-end.html)으로 넘어간다.
+     아직 없는 것: 어두운 주머니 모드와 잠금 풀기(방식 미정), 시간 칩으로 미리 끝 시각 정하기. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  body { padding: 20px 16px calc(28px + env(safe-area-inset-bottom, 0px)); min-height: 100vh; display: flex; }
+  .wrap { max-width: 420px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; }
+  .view { flex: 1; display: flex; flex-direction: column; }
+  .view[hidden] { display: none; }
+
+  .back { align-self: flex-start; color: var(--ink-soft); font-size: 14px; font-weight: 700; text-decoration: none; padding: 6px 0; }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.3; margin: 14px 0 6px; }
+  .lead { font-size: 14px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 20px; }
+
+  .choice {
+    display: block; width: 100%; text-align: left; text-decoration: none; color: var(--ink);
+    background: var(--panel); border: 2px solid var(--panel-border); border-radius: 18px;
+    padding: 18px; margin-bottom: 12px; font-family: inherit; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.08);
+  }
+  .choice.is-main { border-color: var(--accent); }
+  .choice:active { transform: scale(0.99); }
+  .choice strong { display: block; font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .choice span { font-size: 13px; line-height: 1.55; color: var(--ink-soft); }
+  .choice em { font-style: normal; font-size: 11px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 999px; padding: 2px 8px; margin-left: 6px; vertical-align: 2px; }
+
+  /* 산책 중 */
+  .walking { align-items: center; justify-content: center; text-align: center; }
+  .who { font-size: 18px; font-weight: 700; color: var(--ink-soft); margin: 0 0 10px; }
+  .clock { font-size: 96px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .clock small { font-size: 28px; font-weight: 700; letter-spacing: 0; margin-left: 4px; }
+  .since { font-size: 14px; color: var(--ink-soft); margin: 14px 0 0; }
+  .note { font-size: 13px; line-height: 1.6; color: var(--ink-soft); margin: 26px 0 0; }
+
+  .btn-main {
+    width: 100%; border: none; border-radius: 999px; padding: 18px; margin-top: 28px;
+    background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%); color: #fff;
+    font-family: inherit; font-weight: 800; font-size: 18px; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15), 0 6px 16px rgba(var(--shadow-rgb), 0.3);
+  }
+  .btn-main:active { transform: scale(0.98); }
+  .btn-text {
+    display: block; margin: 16px auto 0; background: none; border: none; padding: 6px 10px;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink-soft); text-decoration: underline; cursor: pointer;
+  }
+
+  /* 너무 길게 켜져 있었을 때: 실제로 걸은 시간 고르기 */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .chips button {
+    flex: 1 0 28%; border: 2px solid var(--panel-border); background: var(--panel); color: var(--ink);
+    border-radius: 14px; padding: 14px 6px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer;
+  }
+  .chips button:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- 시작 전: 어떻게 기록할지 고르기 -->
+  <section class="view" id="view-start" hidden>
+    <a class="back" href="index.html">← 오늘</a>
+    <h1>산책 나가기</h1>
+    <p class="lead">어떻게 기록할지 골라 주세요.</p>
+    <button type="button" class="choice is-main" id="start-time">
+      <strong>시간만 재기 <em>기본</em></strong>
+      <span>시작을 누르고 휴대폰은 주머니에 넣으세요. 화면을 꺼도 시간은 계속 가요. 위치는 쓰지 않아요.</span>
+    </button>
+    <a class="choice" href="walk.html">
+      <strong>길도 기록하기</strong>
+      <span>지도에 걸은 길을 남겨요. 켜면 화면을 계속 켜 둬야 하고, 다른 앱을 쓰는 동안은 길이 끊겨요. 발도장과 카드 성장에는 이 기록만 들어가요.</span>
+    </a>
+  </section>
+
+  <!-- 산책 중 -->
+  <section class="view walking" id="view-walking" hidden>
+    <p class="who" id="who">산책 중</p>
+    <div class="clock"><span id="clock">0</span><small>분</small></div>
+    <p class="since" id="since"></p>
+    <button type="button" class="btn-main" id="end-btn">끝내기</button>
+    <p class="note">화면을 꺼도 괜찮아요. 다녀와서 끝내기만 눌러 주세요.<br>끝났다는 알림은 울리지 않아요.</p>
+    <button type="button" class="btn-text" id="cancel-btn">이 산책 기록하지 않기</button>
+  </section>
+
+  <!-- 끝내기를 너무 늦게 누른 경우 -->
+  <section class="view" id="view-fix" hidden>
+    <h1>끝내기를 깜빡하셨나 봐요</h1>
+    <p class="lead" id="fix-lead"></p>
+    <div class="chips" id="fix-chips"></div>
+    <button type="button" class="btn-text" id="fix-keep"></button>
+  </section>
+</div>
+
+<script>
+(function () {
+  var ACTIVE_KEY = 'petwalk_active_walk';  // { startedAt: 밀리초 } — 시간만 재는 산책이 진행 중일 때만 있다
+  var WALKS_KEY = 'petwalk_walks';
+  var PROFILE_KEY = 'petwalk_profile';
+  var TOO_LONG_MIN = 180;                  // 이보다 길면 "깜빡했나요?"를 묻는다(기획표 V1-24의 3시간 기준)
+  var FIX_CHOICES = [10, 20, 30, 45, 60, 90];
+
+  function loadJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
+  }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+
+  var views = { start: document.getElementById('view-start'), walking: document.getElementById('view-walking'), fix: document.getElementById('view-fix') };
+  function show(name) { Object.keys(views).forEach(function (k) { views[k].hidden = (k !== name); }); }
+
+  var active = loadJSON(ACTIVE_KEY, null);
+  var timer = null;
+
+  function elapsedMin() { return Math.max(0, Math.floor((Date.now() - active.startedAt) / 60000)); }
+  function tick() { document.getElementById('clock').textContent = elapsedMin(); }
+
+  function enterWalking() {
+    var profile = loadJSON(PROFILE_KEY, {});
+    document.getElementById('who').textContent = (profile.name ? profile.name + '와(과) ' : '') + '산책 중';
+    var s = new Date(active.startedAt);
+    document.getElementById('since').textContent = s.getHours() + '시 ' + pad2(s.getMinutes()) + '분에 출발';
+    tick();
+    clearInterval(timer);
+    timer = setInterval(tick, 5000);
+    show('walking');
+  }
+  // 다른 앱에 갔다 돌아오면 바로 시간을 다시 맞춘다(꺼져 있는 동안 타이머는 멈춰 있으므로)
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && active) tick(); });
+
+  document.getElementById('start-time').addEventListener('click', function () {
+    active = { startedAt: Date.now() };
+    try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(active)); } catch (e) {
+      alert('저장 공간이 부족해서 산책을 시작하지 못했어요.');
+      active = null;
+      return;
+    }
+    enterWalking();
+  });
+
+  // 기록 저장 → 끝 화면으로. 시간만 잰 산책은 거리·길이 없고, 보상 횟수(카드 성장·발도장)에는 넣지 않는다
+  // — 버튼만 눌러 횟수를 채우는 걸 막기 위함(기획표 V1-22와 같은 기준). 오늘·주간 시간에는 들어간다.
+  function finish(minutes) {
+    var walks = loadJSON(WALKS_KEY, []);
+    walks.push({
+      date: dateKey(new Date(active.startedAt)), distanceKm: 0, durationMin: Math.max(1, minutes),
+      route: [], stampRoute: [], rewardEligible: false, gapMin: 0, mode: 'time'
+    });
+    try {
+      localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
+      localStorage.removeItem(ACTIVE_KEY);
+    } catch (e) {
+      alert('기록을 저장하지 못했어요. 저장 공간을 확인해 주세요.');
+      return;
+    }
+    location.replace('walk-end.html');
+  }
+
+  document.getElementById('end-btn').addEventListener('click', function () {
+    var min = elapsedMin();
+    if (min <= TOO_LONG_MIN) { finish(min); return; }
+    // 3시간이 넘으면 끝내기를 잊은 것으로 보고 실제 시간을 고르게 한다
+    clearInterval(timer);
+    var h = Math.floor(min / 60), m = min % 60;
+    document.getElementById('fix-lead').textContent =
+      '출발한 지 ' + h + '시간 ' + m + '분이 지났어요. 실제로 걸은 시간을 골라 주세요.';
+    var chips = document.getElementById('fix-chips');
+    chips.innerHTML = '';
+    FIX_CHOICES.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = c + '분';
+      b.addEventListener('click', function () { finish(c); });
+      chips.appendChild(b);
+    });
+    var keep = document.getElementById('fix-keep');
+    keep.textContent = '정말 ' + h + '시간 ' + m + '분 걸었어요';
+    keep.onclick = function () { finish(min); };
+    show('fix');
+  });
+
+  document.getElementById('cancel-btn').addEventListener('click', function () {
+    if (!confirm('이 산책을 기록하지 않고 끝낼까요?')) return;
+    try { localStorage.removeItem(ACTIVE_KEY); } catch (e) { /* 무시 */ }
+    location.replace('index.html');
+  });
+
+  if (active && active.startedAt) enterWalking(); else { active = null; show('start'); }
+})();
+</script>
+
+</body>
+</html>

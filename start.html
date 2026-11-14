@@ -92,6 +92,7 @@
     background: var(--panel); color: var(--ink); font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
   }
   .btn-sub[hidden] { display: none; }
+  .btn-text[hidden], .foot[hidden] { display: none; }
   .btn-text {
     display: block; margin: 14px auto 0; background: none; border: none; padding: 6px 10px;
     font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink-soft); text-decoration: underline; cursor: pointer;
@@ -198,6 +199,7 @@
      못 받아오면(오프라인 등) QR 없이 주소 글자만 들어간다. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 
+<script src="infra-pins.js?v=3"></script>
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -216,7 +218,9 @@
   var SIGNALS = {
     green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
     yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
-    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
+    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' },
+    // 신호등을 정하지 않은 가게 수호지킴이용 — 불은 켜지 않고 앱 색으로 그린다
+    none:   { label: '수호지킴이', line: '가게를 지키고 있어요', color: '#b8563a' }
   };
 
   function loadProfile() {
@@ -230,6 +234,7 @@
   var signal = SIGNALS[profile.signal] ? profile.signal : null;
   var photoDataUrl = profile.photo || null;
   var photoImage = null;
+  var guardianSpot = null; // 가게 수호지킴이 카드를 보는 중이면 그 가게 이름
 
   var steps = [1, 2, 3].map(function (n) { return document.getElementById('step-' + n); });
   var bars = [1, 2, 3].map(function (n) { return document.getElementById('bar-' + n); });
@@ -370,7 +375,7 @@
   function drawCard(img) {
     var ctx = canvas.getContext('2d');
     var W = canvas.width, H = canvas.height;
-    var sig = SIGNALS[profile.signal] || SIGNALS.green;
+    var sig = SIGNALS[profile.signal] || SIGNALS.none;
     var INK = '#4a3f35', SOFT = '#8a7a68', LINE = '#e6d6c1';
 
     ctx.clearRect(0, 0, W, H);
@@ -391,7 +396,9 @@
     ctx.fillText('댕댕이 주민증', 96, 168);
     ctx.fillStyle = SOFT;
     ctx.font = font(600, 34);
-    ctx.fillText('남양주 다산동 산책 주민', 100, 222);
+    var subtitle = guardianSpot ? guardianSpot + ' 수호지킴이' : '남양주 다산동 산책 주민';
+    ctx.font = font(600, fitText(ctx, subtitle, 900, 34, 600));
+    ctx.fillText(subtitle, 100, 222);
 
     // 오른쪽 위 신호등(불 셋 중 하나만 켜짐)
     var lampOrder = ['green', 'yellow', 'red'];
@@ -511,7 +518,7 @@
     var out = document.createElement('canvas');
     out.width = W; out.height = H;
     var ctx = out.getContext('2d');
-    var sig = SIGNALS[profile.signal] || SIGNALS.green;
+    var sig = SIGNALS[profile.signal] || SIGNALS.none;
     ctx.fillStyle = '#f7ede2';
     ctx.fillRect(0, 0, W, H);
     // 위아래에 신호등 색 띠를 얇게 — 어떤 신호등인지 멀리서도 보이게
@@ -561,7 +568,9 @@
       photoImage = res[0];
       drawCard(photoImage);
       refreshPreview();
-      document.getElementById('done-title').textContent = profile.name + '의 주민증이 나왔어요';
+      document.getElementById('done-title').textContent = guardianSpot
+        ? guardianSpot + ' 수호지킴이 ' + profile.name
+        : profile.name + '의 주민증이 나왔어요';
     });
   }
 
@@ -593,8 +602,31 @@
   var keyringNote = document.getElementById('keyring-note');
   if (KEYRING_NOTE) { keyringNote.textContent = KEYRING_NOTE; keyringNote.hidden = false; }
 
+  // ── 가게 수호지킴이 카드(2026-11-14): start.html?guardian=<스팟 id> ──
+  // 동네 지도의 가게 팝업 "주민증 보기"와 관리자 도구에서 온다. 그 가게 강아지 정보(infra-pins.js)로
+  // 같은 카드를 그려 보여 주기만 한다 — 내 프로필은 읽지도 바꾸지도 않는다.
+  var gm = /[?&]guardian=([^&]+)/.exec(location.search);
+  if (gm && window.InfraPins) {
+    var gid = decodeURIComponent(gm[1]);
+    var spot = InfraPins.all().filter(function (p) { return p.id === gid; })[0];
+    if (spot && InfraPins.hasGuardian(spot)) {
+      var g = spot.guardian;
+      guardianSpot = spot.name || '우리 동네 가게';
+      profile = {
+        name: g.name, signal: SIGNALS[g.signal] ? g.signal : 'none', photo: g.photo || null,
+        cardNo: 'GUARD-' + String(gid).replace(/[^0-9A-Za-z]/g, '').slice(-4).toUpperCase(),
+        cardIssued: (spot.verifiedAt || '').replace(/-/g, '. ') + (spot.verifiedAt ? '.' : '')
+      };
+      document.getElementById('redo-btn').hidden = true;
+      document.querySelector('#step-3 .lead').textContent = g.line || '이 가게를 지키는 강아지예요.';
+      document.querySelector('.foot').hidden = true;
+      renderCard().then(function () { showStep(3); });
+      return;
+    }
+  }
+
   // 이미 만든 적이 있으면 바로 카드를 보여 준다(다시 들어온 사람이 처음부터 하지 않게)
-  if (profile.name && SIGNALS[profile.signal] && profile.cardNo) {
+  if (profile.name && SIGNALS[profile.signal] && profile.signal !== 'none' && profile.cardNo) {
     renderCard().then(function () { showStep(3); });
   }
 })();

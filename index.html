@@ -116,8 +116,8 @@
     <h2 id="today-label">오늘</h2>
     <div class="today-num"><span id="today-min">0</span><small>분</small></div>
     <p class="today-sub" id="today-sub">아직 오늘 산책 기록이 없어요.</p>
-    <a class="btn-main" href="walk.html">산책 나가기</a>
-    <p class="btn-note">산책 화면에서 위치를 쓰는 이유를 먼저 알려 드려요.</p>
+    <a class="btn-main" id="go-btn" href="go.html">산책 나가기</a>
+    <p class="btn-note" id="go-note">시간만 재거나, 길까지 기록할 수 있어요.</p>
   </section>
 
   <section class="panel">
@@ -199,7 +199,26 @@
   var today = byDate[todayKey];
   if (today) {
     document.getElementById('today-min').textContent = today.min;
-    document.getElementById('today-sub').textContent = '산책 ' + today.count + '번 · ' + today.km.toFixed(1) + 'km';
+    document.getElementById('today-sub').textContent = '산책 ' + today.count + '번' + (today.km ? ' · ' + today.km.toFixed(1) + 'km' : '');
+  }
+
+  // 끝 화면(walk-end.html)에서 답한 것이 있으면 오늘 줄에 덧붙인다
+  var FEEL = { enough: '충분했어요', short: '조금 아쉬워요' };
+  var lastToday = null;
+  walks.forEach(function (w) { if (w && w.date === todayKey) lastToday = w; });
+  if (today && lastToday) {
+    var extra = [];
+    if (FEEL[lastToday.feel]) extra.push(FEEL[lastToday.feel]);
+    if (lastToday.sniff) extra.push('킁킁 ' + lastToday.sniff);
+    if (extra.length) document.getElementById('today-sub').textContent += ' · ' + extra.join(' · ');
+  }
+
+  // 시간만 재는 산책(go.html)이 진행 중이면 버튼이 그 화면으로 돌아가게 한다
+  var active = loadJSON('petwalk_active_walk', null);
+  if (active && active.startedAt) {
+    var goMin = Math.max(0, Math.floor((Date.now() - active.startedAt) / 60000));
+    document.getElementById('go-btn').textContent = '산책 중 · ' + goMin + '분째';
+    document.getElementById('go-note').textContent = '눌러서 산책 화면으로 돌아가 끝내기를 눌러 주세요.';
   }
 
   // ── 최근 7일 막대(오늘이 맨 오른쪽) ──
@@ -239,7 +258,7 @@
     document.getElementById('last-title').textContent =
       (last.date === todayKey ? '오늘' : Number(parts[1]) + '월 ' + Number(parts[2]) + '일') + ' 산책';
     document.getElementById('last-sub').textContent =
-      (last.durationMin || 0) + '분 · ' + (last.distanceKm || 0).toFixed(1) + 'km';
+      (last.durationMin || 0) + '분' + (last.distanceKm ? ' · ' + last.distanceKm.toFixed(1) + 'km' : ' · 시간만 기록');
     document.getElementById('last-panel').hidden = false;
   }
 

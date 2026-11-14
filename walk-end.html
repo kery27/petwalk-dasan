@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 끝</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 산책 끝난 직후 화면(2026-11-14, 기획표 V1-19 — 화면 구조 C안).
+     산책 중에는 휴대폰을 못 만지니(실패 시나리오 F-1a) 물어볼 것은 끝난 뒤에 한 번에 묻는다:
+     오늘 충분했나 · 킁킁 지수 · 응가. 전부 골라도 되고 안 골라도 된다.
+     방금 끝난 산책(petwalk_walks의 마지막 기록)에 답을 붙여 저장한다 — feel / sniff / poop.
+     go.html(시간만)과 walk.html(길 기록) 둘 다 끝나면 여기로 온다. 서버 없음, 위치 없음.
+     문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 사진 한 장·가족에게 보내기는 아직 없다. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  body { padding: 24px 16px calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 420px; margin: 0 auto; }
+
+  .sum { text-align: center; margin-bottom: 22px; }
+  .sum .label { font-size: 14px; font-weight: 700; color: var(--ink-soft); margin: 0 0 6px; }
+  .sum .num { font-size: 64px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .sum .num small { font-size: 22px; font-weight: 700; letter-spacing: 0; margin-left: 4px; }
+  .sum .sub { font-size: 14px; color: var(--ink-soft); margin: 10px 0 0; }
+
+  .q {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
+    padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.06);
+  }
+  .q h2 { font-size: 15px; font-weight: 800; margin: 0 0 10px; }
+  .q h2 span { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-left: 6px; }
+  .opts { display: flex; gap: 8px; }
+  .opts button {
+    flex: 1; border: 2px solid var(--panel-border); background: #fff; color: var(--ink);
+    border-radius: 14px; padding: 13px 4px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .opts button:active { transform: scale(0.97); }
+  .opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .scale-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+
+  .btn-main {
+    width: 100%; border: none; border-radius: 999px; padding: 16px; margin-top: 10px;
+    background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%); color: #fff;
+    font-family: inherit; font-weight: 800; font-size: 17px; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15), 0 6px 16px rgba(var(--shadow-rgb), 0.3);
+  }
+  .btn-main:active { transform: scale(0.98); }
+  .btn-text {
+    display: block; margin: 14px auto 0; padding: 6px 10px; text-align: center;
+    font-size: 13px; font-weight: 600; color: var(--ink-soft); text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="sum">
+    <p class="label" id="sum-label">산책 끝</p>
+    <div class="num"><span id="sum-min">0</span><small>분</small></div>
+    <p class="sub" id="sum-sub"></p>
+  </div>
+
+  <section class="q">
+    <h2>오늘 산책, 충분했나요?</h2>
+    <div class="opts" data-field="feel">
+      <button type="button" data-value="enough" aria-pressed="false">충분했어요</button>
+      <button type="button" data-value="short" aria-pressed="false">조금 아쉬워요</button>
+    </div>
+  </section>
+
+  <section class="q">
+    <h2>킁킁 지수 <span>냄새를 얼마나 맡았나요</span></h2>
+    <div class="opts" data-field="sniff">
+      <button type="button" data-value="1" aria-pressed="false">1</button>
+      <button type="button" data-value="2" aria-pressed="false">2</button>
+      <button type="button" data-value="3" aria-pressed="false">3</button>
+      <button type="button" data-value="4" aria-pressed="false">4</button>
+      <button type="button" data-value="5" aria-pressed="false">5</button>
+    </div>
+    <div class="scale-ends"><span>거의 못 맡음</span><span>실컷 맡음</span></div>
+  </section>
+
+  <section class="q">
+    <h2>응가는요?</h2>
+    <div class="opts" data-field="poop">
+      <button type="button" data-value="0" aria-pressed="false">안 했어요</button>
+      <button type="button" data-value="1" aria-pressed="false">1번</button>
+      <button type="button" data-value="2" aria-pressed="false">2번 이상</button>
+    </div>
+  </section>
+
+  <button type="button" class="btn-main" id="save-btn">저장하고 오늘로</button>
+  <a class="btn-text" href="index.html">묻지 않고 넘어가기</a>
+</div>
+
+<script>
+(function () {
+  var WALKS_KEY = 'petwalk_walks';
+  var PROFILE_KEY = 'petwalk_profile';
+
+  function loadJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
+  }
+
+  var walks = loadJSON(WALKS_KEY, []);
+  var walk = walks.length ? walks[walks.length - 1] : null;
+  if (!walk) { location.replace('index.html'); return; }
+
+  var profile = loadJSON(PROFILE_KEY, {});
+  document.getElementById('sum-label').textContent = (profile.name ? profile.name + ', ' : '') + '산책 끝';
+  document.getElementById('sum-min').textContent = walk.durationMin || 0;
+
+  // 오늘 합계 — 방금 것까지 포함
+  var todayMin = 0, todayCount = 0;
+  walks.forEach(function (w) { if (w.date === walk.date) { todayMin += w.durationMin || 0; todayCount += 1; } });
+  var sub = [];
+  if (walk.distanceKm) sub.push(walk.distanceKm.toFixed(1) + 'km');
+  if (todayCount > 1) sub.push('오늘 모두 ' + todayMin + '분 · ' + todayCount + '번째 산책');
+  document.getElementById('sum-sub').textContent = sub.join(' · ');
+
+  // 답 고르기 — 같은 버튼을 다시 누르면 선택이 풀린다(전부 선택 사항)
+  var answers = {};
+  if (walk.feel) answers.feel = walk.feel;
+  if (walk.sniff) answers.sniff = String(walk.sniff);
+  if (walk.poop !== undefined) answers.poop = String(walk.poop);
+  Array.prototype.forEach.call(document.querySelectorAll('.opts'), function (group) {
+    var field = group.getAttribute('data-field');
+    var buttons = group.querySelectorAll('button');
+    function paint() {
+      Array.prototype.forEach.call(buttons, function (b) {
+        b.setAttribute('aria-pressed', answers[field] === b.getAttribute('data-value') ? 'true' : 'false');
+      });
+    }
+    Array.prototype.forEach.call(buttons, function (b) {
+      b.addEventListener('click', function () {
+        var v = b.getAttribute('data-value');
+        if (answers[field] === v) delete answers[field]; else answers[field] = v;
+        paint();
+      });
+    });
+    paint();
+  });
+
+  document.getElementById('save-btn').addEventListener('click', function () {
+    // 다른 탭에서 기록이 바뀌었을 수 있으니 다시 읽어 마지막 기록에 붙인다
+    var latest = loadJSON(WALKS_KEY, []);
+    var target = latest.length ? latest[latest.length - 1] : null;
+    if (target) {
+      if (answers.feel) target.feel = answers.feel; else delete target.feel;
+      if (answers.sniff) target.sniff = Number(answers.sniff); else delete target.sniff;
+      if (answers.poop !== undefined) target.poop = Number(answers.poop); else delete target.poop;
+      try { localStorage.setItem(WALKS_KEY, JSON.stringify(latest)); } catch (e) {
+        alert('저장하지 못했어요. 저장 공간을 확인해 주세요.');
+        return;
+      }
+    }
+    location.replace('index.html');
+  });
+})();
+</script>
+
+</body>
+</html>

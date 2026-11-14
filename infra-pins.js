@@ -58,7 +58,79 @@
   function saveCustom(pins) {
     try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(pins)); return true; } catch (e) { return false; }
   }
-  function all() { return SEED.concat(loadCustom()); }
+  // 이 기기에서 고친 내용(운영자)과 배포본(SEED)을 합친다(2026-11-14 관리자 모드).
+  //  - 같은 id가 이 기기에 있으면 그쪽이 이긴다(배포본 핀을 고친 것).
+  //  - deleted: true 는 "이 핀은 뺀다"는 표시다(배포본 핀을 지운 것).
+  // 지도 화면들은 all()만 쓰면 되고, 관리 도구는 allWithState()로 어디서 온 핀인지까지 본다.
+  function allWithState() {
+    var custom = loadCustom();
+    var byId = {};
+    custom.forEach(function (p) { if (p && p.id) byId[p.id] = p; });
+    var out = [];
+    SEED.forEach(function (p) {
+      var o = byId[p.id];
+      if (o) { delete byId[p.id]; if (!o.deleted) out.push({ pin: o, state: 'edited' }); }
+      else out.push({ pin: p, state: 'seed' });
+    });
+    custom.forEach(function (p) {
+      if (p && p.id && byId[p.id] && !p.deleted) out.push({ pin: p, state: 'new' });
+    });
+    return out;
+  }
+  function all() { return allWithState().map(function (x) { return x.pin; }); }
+
+  // ── 가게 수호지킴이(2026-11-14 가르시아) ──
+  // 단골 가게를 지키는 강아지. 동반 스팟 핀에 guardian: { name, signal, photo, line } 으로 붙는다.
+  // 가게 주인이 알려 주고 올려도 된다고 한 것만 운영자가 넣는다 — 남의 강아지 사진을 허락 없이 올리지 않는다.
+  var SIGNALS = {
+    green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
+    yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
+    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
+  };
+  function hasGuardian(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
+
+  // 팝업에 넣는 수호지킴이 칸(DOM). 지도 화면마다 CSS를 복사하지 않게 인라인 스타일로 만든다.
+  function guardianEl(pin) {
+    if (!hasGuardian(pin)) return null;
+    var g = pin.guardian;
+    var sig = SIGNALS[g.signal];
+    var box = document.createElement('div');
+    box.style.cssText = 'display:flex;align-items:center;gap:10px;margin:4px 0;padding:8px;border-radius:12px;background:#f3ddd2;';
+    var face = document.createElement('div');
+    face.style.cssText = 'flex-shrink:0;width:46px;height:46px;border-radius:50%;overflow:hidden;background:#fffaf3;' +
+      'border:3px solid ' + (sig ? sig.color : '#e6d6c1') + ';';
+    if (g.photo) {
+      var img = document.createElement('img');
+      img.src = g.photo;
+      img.alt = '';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      face.appendChild(img);
+    }
+    var text = document.createElement('div');
+    text.style.cssText = 'min-width:0;';
+    var title = document.createElement('div');
+    title.style.cssText = 'font-size:11px;font-weight:700;color:#b8563a;';
+    title.textContent = '수호지킴이';
+    var name = document.createElement('div');
+    name.style.cssText = 'font-size:14px;font-weight:800;color:#4a3f35;';
+    name.textContent = g.name;
+    text.appendChild(title);
+    text.appendChild(name);
+    if (sig || g.line) {
+      var line = document.createElement('div');
+      line.style.cssText = 'font-size:11px;color:#6b5d4e;';
+      line.textContent = [sig ? sig.label + ' · ' + sig.line : '', g.line || ''].filter(Boolean).join(' · ');
+      text.appendChild(line);
+    }
+    var link = document.createElement('a');
+    link.href = 'start.html?guardian=' + encodeURIComponent(pin.id);
+    link.textContent = '주민증 보기';
+    link.style.cssText = 'display:inline-block;margin-top:2px;font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
+    text.appendChild(link);
+    box.appendChild(face);
+    box.appendChild(text);
+    return box;
+  }
 
   function category(key) {
     for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].key === key) return CATEGORIES[i];
@@ -88,7 +160,8 @@
 
   window.InfraPins = {
     CATEGORIES: CATEGORIES, SEED: SEED, CUSTOM_KEY: CUSTOM_KEY,
-    loadCustom: loadCustom, saveCustom: saveCustom, all: all,
+    loadCustom: loadCustom, saveCustom: saveCustom, all: all, allWithState: allWithState,
+    SIGNALS: SIGNALS, hasGuardian: hasGuardian, guardianEl: guardianEl,
     category: category, iconSvg: iconSvg, markerHtml: markerHtml, sourceText: sourceText
   };
 })();

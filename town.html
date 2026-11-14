@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
-<script src="infra-pins.js?v=2"></script>
+<script src="infra-pins.js?v=3"></script>
 <script src="demo-geo.js?v=1"></script>
 <style>
   /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
@@ -82,6 +82,7 @@
     font-size: 11px; color: var(--ink-soft); background: rgba(255, 250, 243, 0.85);
     padding: 3px 8px; border-radius: var(--radius-pill); text-decoration: none;
   }
+  .tool-link[hidden] { display: none; }
   .leaflet-bottom.leaflet-right { margin-bottom: 0; }
 
   .popup { display: flex; flex-direction: column; gap: 4px; min-width: 150px; font-size: 13px; }
@@ -116,7 +117,7 @@
   </button>
 </div>
 <!-- 운영자 도구 — 현장에서 시설·주의 구역을 찍을 때 쓴다. 당분간만 보이게 둔다. -->
-<a class="tool-link" href="infra-builder.html">시설 핀 관리</a>
+<a class="tool-link" id="tool-link" href="infra-builder.html" hidden>스팟 관리 (관리자)</a>
 
 <script src="tabbar.js?v=1" data-tab="town"></script>
 <script>
@@ -127,6 +128,13 @@
   var FILTER_KEY = 'petwalk_infra_filter';                    // 꺼 둔 종류 — walk.html과 같이 쓴다
   var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';  // 위치 쓰는 이유를 이미 설명했는지
   var MIN_ZOOM_FOR_PINS = 13;
+
+  // 관리자 모드(운영자 기기 표시): infra-builder.html을 한 번 열면 켜지고, 거기서 끌 수 있다.
+  // 주소 뒤에 ?admin=1 을 붙여도 켜진다. 잠금이 아니라 일반 사용자 화면에서 도구 링크를 치워 두는 용도다.
+  try {
+    if (/[?&]admin=1/.test(location.search)) localStorage.setItem('petwalk_admin', '1');
+    document.getElementById('tool-link').hidden = localStorage.getItem('petwalk_admin') !== '1';
+  } catch (e) { /* 링크만 안 보인다 */ }
 
   function loadJSON(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
@@ -171,6 +179,8 @@
       wrap.appendChild(tagsEl);
     }
     if (pin.note) { var noteEl = document.createElement('div'); noteEl.textContent = pin.note; wrap.appendChild(noteEl); }
+    var guardian = InfraPins.guardianEl(pin); // 가게 수호지킴이(있을 때만)
+    if (guardian) wrap.appendChild(guardian);
     // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
     var srcEl = document.createElement('div');
     srcEl.className = 'popup-source';

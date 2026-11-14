@@ -213,7 +213,10 @@
       var points = routeThumbnailPoints(w.route, 40);
       var thumbInner = points
         ? '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" style="color:var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="' + points + '"/></svg>'
-        : '<span class="no-route">기록<br>없음</span>';
+        : '<span class="no-route">' + (w.mode === 'time' ? '시간만' : '기록<br>없음') + '</span>';
+      // 끝 화면(walk-end.html)에서 답한 것
+      var feelText = w.feel === 'enough' ? '충분했어요' : w.feel === 'short' ? '조금 아쉬워요' : '';
+      var extra = (feelText ? '<span>' + feelText + '</span>' : '') + (w.sniff ? '<span>킁킁 ' + w.sniff + '</span>' : '');
       var dayStreak = streakAtDate(walks, w.date);
 
       var card = document.createElement('div');
@@ -223,10 +226,13 @@
         '<div class="info">' +
           '<div class="top-row"><span class="date">' + formatDate(w.date) + '</span>' +
           (dayStreak > 1 ? '<span class="streak">연속 ' + dayStreak + '일째</span>' : '') + '</div>' +
-          '<div class="stats"><span><b>' + w.distanceKm.toFixed(1) + 'km</b></span>' +
-          '<span>' + w.durationMin + '분</span>' +
-          '<span>' + pace(w.distanceKm, w.durationMin) + '</span>' +
-          (w.rewardEligible === false ? '<span class="no-reward">보상 제외</span>' : '') + '</div>' +
+          (w.mode === 'time'
+            // 시간만 잰 산책 — 거리·길이 없어서 시간만 보여 준다
+            ? '<div class="stats"><span><b>' + w.durationMin + '분</b></span>' + extra + '</div>'
+            : '<div class="stats"><span><b>' + w.distanceKm.toFixed(1) + 'km</b></span>' +
+              '<span>' + w.durationMin + '분</span>' +
+              '<span>' + pace(w.distanceKm, w.durationMin) + '</span>' + extra +
+              (w.rewardEligible === false ? '<span class="no-reward">보상 제외</span>' : '') + '</div>') +
         '</div>';
       listEl.appendChild(card);
     });
