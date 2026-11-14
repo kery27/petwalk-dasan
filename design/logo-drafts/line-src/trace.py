@@ -20,7 +20,7 @@ def path_d(mask, scale, turd=12, tol=0.35):
 
 if __name__ == "__main__":
     res = {}
-    for name in ('final_ink', 'final_fill', 'strong_ink', 'strong_fill'):
+    for name in ('final_ink', 'final_fill', 'strong_ink', 'strong_fill', 'v2b_ink', 'v2b_fill'):
         m = np.load(name + '.npy')
         t = time.time()
         d, n = path_d(m, 0.5)

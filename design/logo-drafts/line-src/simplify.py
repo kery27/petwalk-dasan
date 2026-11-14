@@ -1,9 +1,9 @@
 # 받은 그림(1024px, 노란 바탕에 갈색 선)에서 선만 뽑아 단순하게 다듬는 데 쓰는 함수들.
-# 그림 파일은 저장소에 넣지 않는다. 경로는 make.py 의 첫 인자로 준다.
+# 그림 파일은 저장소에 넣지 않는다. 경로는 make.py / make2.py 의 인자로 준다.
 import sys
 import cv2, numpy as np
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else 'orig.png'
+SRC = next((a for a in sys.argv[1:] if not a.startswith('--')), 'orig.png')
 S = 2                       # 작업 배수
 INK = (16, 50, 90)          # #5a3210 (BGR)
 YEL = (74, 200, 247)        # #f7c84a

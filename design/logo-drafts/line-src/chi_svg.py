@@ -15,9 +15,10 @@ def framing(mask_name, target=0.80):
 
 TF, BOX = framing('final_ink.npy')
 TFS, BOXS = framing('strong_ink.npy')
+TFB, BOXB = framing('v2b_ink.npy')
 
 def art(kind, fill=True):
-    ink = P[kind + '_ink']; fl = P[kind + '_fill']; tf = TF if kind == 'final' else TFS
+    ink = P[kind + '_ink']; fl = P[kind + '_fill']; tf = {'final': TF, 'strong': TFS, 'v2b': TFB}[kind]
     f = f'<path d="{fl}" style="fill: {PAPER}; fill-rule: evenodd"/>' if fill else ''
     return f'<g transform="{tf}">{f}<path d="{ink}" style="fill: {INK}; fill-rule: evenodd"/></g>'
 
@@ -27,8 +28,8 @@ def svg(kind, size, bg, radius, fill=True, extra=""):
 if __name__ == "__main__":
     print('frame', BOX, BOXS)
     Y, T = "#f7c84a", "#b8563a"
-    big = "".join(svg(k, 420, bg, 92, f) for k, bg, f in (('final', Y, False), ('final', Y, True), ('strong', Y, True), ('final', T, True)))
+    big = "".join(svg(k, 420, bg, 92, f) for k, bg, f in (('final', Y, True), ('v2b', Y, True), ('v2b', T, True), ('v2b', Y, False)))
     small = ""
-    for k, f in (('final', False), ('final', True), ('strong', True)):
+    for k, f in (('final', True), ('strong', True), ('v2b', True)):
         small += '<div style="display:flex;gap:10px;align-items:flex-end;margin-right:30px">' + "".join(svg(k, sz, Y, int(sz * 0.22), f) for sz in (84, 48, 32, 16)) + '</div>'
     open('chi_preview.html', 'w').write(f'<!doctype html><meta charset="utf-8"><body style="margin:0;background:#f7ede2"><div style="display:flex;gap:16px;padding:16px">{big}</div><div style="display:flex;padding:0 16px">{small}</div>')

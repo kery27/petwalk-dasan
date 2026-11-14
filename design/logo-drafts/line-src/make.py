@@ -1,4 +1,4 @@
-# 받은 그림을 단순하게 다듬은 판을 만든다:  python3 make.py /경로/받은그림.png
+# 받은 그림을 단순하게 다듬은 판(A~D안)을 만든다:  python3 make.py /경로/받은그림.png
 # 좌표(눈, 송곳니, 이빨 자리)는 2026-11-14에 받은 그림에 맞춘 값이다. 다른 그림이면 edit()·edit_strong()을 다시 맞춘다.
 import sys
 import cv2, numpy as np
