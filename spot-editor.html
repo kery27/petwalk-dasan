@@ -3,19 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>동네 스팟 관리 (내 컴퓨터)</title>
+<title>스팟 편집 (운영자)</title>
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="../infra-pins.js?v=5"></script>
+<script src="spots-data.js"></script>
+<script src="infra-pins.js?v=6"></script>
+<script src="spot-github.js?v=1"></script>
 <style>
-  /* 동네 스팟 관리 — 운영자 컴퓨터 전용(2026-11-14, 기획표 V0-18).
-     tools/admin_server.py 가 켜져 있을 때만 동작한다(http://localhost:5175/tools/spots.html).
-     이 폴더는 배포하지 않는다(_config.yml). 배포된 사이트에서는 이 화면이 열리지 않는다.
+  /* 스팟 편집 — 운영자 전용(2026-11-15 다시 정리, 기획표 V0-18).
+     배포된 사이트에 있지만, GitHub 토큰을 넣은 브라우저(= 운영자 컴퓨터)에서만 쓸 수 있다.
+     그 브라우저에서만 [동네] 지도에 "스팟 편집" 버튼이 보인다(infra-pins.js isAdminDevice).
 
-     흐름: 고치면 바로 이 컴퓨터의 spots-data.js 에 저장 → 확인하고 "모두에게 반영"을 누르면
-     spots-data.js·spots/ 만 커밋해서 GitHub에 올린다 → 몇 분 뒤 모든 사람 화면에 보인다.
+     흐름: 고치면 먼저 이 컴퓨터에만 저장(초안) → "모두에게 반영"을 누르면 spots-data.js·spots/photos/를
+     커밋 하나로 저장소에 올린다(spot-github.js) → GitHub Pages가 다시 배포 → 몇 분 뒤 모든 사람에게 보인다.
      가게 이름과 강아지 사진은 가게 주인이 올려도 된다고 한 것만 넣는다. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -89,8 +91,12 @@
 <body>
 
 <div class="topbar">
-  <h1>동네 스팟 관리 <span style="font-weight:500;color:var(--ink-soft);font-size:12px;">내 컴퓨터 전용</span></h1>
-  <a href="../town.html" target="_blank" rel="noopener">동네 지도 미리보기 ↗</a>
+  <h1>스팟 편집 <span style="font-weight:500;color:var(--ink-soft);font-size:12px;">운영자 전용</span></h1>
+  <span style="display:flex;gap:14px;align-items:center;">
+    <a href="town.html">← 동네 지도</a>
+    <button type="button" id="reload-btn" style="padding:5px 9px;">다시 불러오기</button>
+    <button type="button" id="logout-btn" style="padding:5px 9px;">토큰 지우기</button>
+  </span>
 </div>
 
 <div class="status" id="status">
@@ -171,83 +177,100 @@
   var DEFAULT_CENTER = [37.6212, 127.1525];
   var $ = function (id) { return document.getElementById(id); };
 
-  // ── 내 컴퓨터에서만: 배포된 사이트나 관리 서버 없이 열면 안내만 보여 준다 ──
+  // ── 운영자 기기 확인: GitHub 토큰이 이 브라우저에 있어야 편집·반영할 수 있다(spot-github.js) ──
   function block(html) {
     $('layout').hidden = true;
     $('status').hidden = true;
     $('blocked').innerHTML = html;
     $('blocked').hidden = false;
   }
-  if (!window.InfraPins || !InfraPins.isLocalAdmin()) {
-    block('<strong>이 화면은 운영자 컴퓨터에서만 열립니다.</strong>');
-    return;
-  }
 
-  var spots = [];          // 지금 저장된 전체 목록(서버에서 받은 것)
-  var pending = 0;         // 아직 배포 안 한 변경 수
+  var DRAFT_KEY = 'petwalk_spot_draft';   // 반영 전 편집 내용 — 이 브라우저에만 둔다(창을 닫아도 남게)
+  var spots = [];          // 지금 편집 중인 전체 목록
+  var baseSpots = [];      // 저장소(main)에 올라가 있는 목록
+  var baseSha = null;      // 그 목록을 읽은 커밋
   var busy = false;
 
-  function api(path, body) {
-    return fetch('/api/' + path, body ? {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-    } : undefined).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (j) {
-        if (!r.ok) throw new Error(j.error || j.message || ('서버 오류 ' + r.status));
-        return j;
-      });
-    });
+  function sameSpot(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  function pendingCount() {
+    var byId = {}, n = 0;
+    baseSpots.forEach(function (s) { byId[s.id] = s; });
+    spots.forEach(function (s) { if (!byId[s.id] || !sameSpot(byId[s.id], s)) n++; delete byId[s.id]; });
+    return n + Object.keys(byId).length;   // 바뀐 것 + 새로 넣은 것 + 지운 것
   }
-  function applyState(st) {
-    spots = st.spots || [];
-    pending = st.pending;
-    renderAll();
-    renderStatus();
+  function saveDraft() {
+    try {
+      if (pendingCount()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseSha: baseSha, spots: spots }));
+      else localStorage.removeItem(DRAFT_KEY);
+      return true;
+    } catch (e) { return false; }
   }
   function renderStatus(errText) {
     var bar = $('status'), msg = $('status-msg'), btn = $('publish-btn');
+    var pending = pendingCount();
     bar.className = 'status';
     if (errText) {
       bar.classList.add('is-error');
       msg.textContent = errText;
     } else if (pending > 0) {
-      msg.textContent = '이 컴퓨터에 저장됨 · 아직 모두에게 반영 안 한 변경 ' + pending + '개';
-    } else if (pending === 0) {
-      bar.classList.add('is-clean');
-      msg.textContent = '모두 반영됨 — 사이트와 이 컴퓨터의 내용이 같아요';
+      msg.textContent = '이 컴퓨터에만 저장됨 · 아직 모두에게 반영 안 한 변경 ' + pending + '개';
     } else {
-      msg.textContent = '변경 여부를 확인하지 못했어요(git)';
+      bar.classList.add('is-clean');
+      msg.textContent = '모두 반영됨 — 서비스와 같은 내용이에요';
     }
-    btn.disabled = busy || !(pending > 0);
+    btn.disabled = busy || pending === 0;
   }
-
+  // 고친 내용은 먼저 이 컴퓨터에 둔다. "모두에게 반영"을 눌러야 커밋된다.
   function save() {
-    busy = true; renderStatus();
-    return api('save', { spots: spots }).then(function (st) { busy = false; applyState(st); })
-      .catch(function (e) { busy = false; renderStatus('저장하지 못했어요: ' + e.message); throw e; });
+    if (!saveDraft()) {
+      renderStatus('이 브라우저 저장 공간이 부족해요. 사진을 줄이거나 먼저 반영해 주세요.');
+    } else {
+      renderAll();
+      renderStatus();
+    }
+    return Promise.resolve();
   }
 
   $('publish-btn').addEventListener('click', function () {
-    if (!confirm('지금 저장된 스팟을 GitHub에 올려서 모든 사람에게 보이게 할까요?\n(올라간 뒤 사이트에 보이기까지 몇 분 걸려요)')) return;
+    var n = pendingCount();
+    if (!n || busy) return;
+    if (!confirm('바뀐 스팟 ' + n + '개를 저장소에 커밋해서 모든 사람에게 보이게 할까요?\n(반영된 뒤 서비스에 보이기까지 몇 분 걸려요)')) return;
     busy = true; renderStatus();
-    $('status-msg').textContent = '올리는 중…';
-    api('publish', {}).then(function (st) {
+    $('status-msg').textContent = 'GitHub에 올리는 중…';
+    SpotGitHub.publish(spots, baseSha).then(function (res) {
       busy = false;
-      applyState(st);
-      alert(st.message || '올렸어요.');
+      baseSha = res.headSha;
+      spots = res.spots;                 // 사진이 파일 경로로 바뀐 목록
+      baseSpots = JSON.parse(JSON.stringify(res.spots));
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 무시 */ }
+      clearForm();
+      renderAll();
+      renderStatus();
+      alert(res.nothing ? '바뀐 내용이 없어서 커밋하지 않았어요.' : '커밋했어요. 몇 분 뒤 모든 사람의 동네 지도에 보여요.');
     }).catch(function (e) {
       busy = false;
       renderStatus('반영하지 못했어요: ' + e.message);
     });
   });
 
+  $('reload-btn').addEventListener('click', function () {
+    if (pendingCount() && !confirm('반영 안 한 변경을 버리고 저장소의 최신 내용을 다시 불러올까요?')) return;
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 무시 */ }
+    location.reload();
+  });
+  $('logout-btn').addEventListener('click', function () {
+    if (!confirm('이 브라우저에서 GitHub 토큰을 지울까요?\n지우면 이 컴퓨터에서도 편집 버튼이 사라져요.')) return;
+    SpotGitHub.setToken('');
+    location.href = 'town.html';
+  });
   // ── 지도·폼 ──
   var map = null, markers = {}, draftLatLng = null, draftMarker = null;
   var editingId = null, gPhoto = null, pPhoto = null;
   var fCat = $('f-cat'), fName = $('f-name'), fTags = $('f-tags'), fNote = $('f-note'), fPhone = $('f-phone');
   var gName = $('g-name'), gSignal = $('g-signal'), gLine = $('g-line');
 
-  // 사진 경로는 저장소 최상위 기준(spots/photos/…)이라 이 화면(tools/)에서는 한 칸 위로 본다
-  function src(p) { return !p ? '' : (/^(data:|https?:)/.test(p) ? p : '../' + p); }
+  // 사진 경로는 저장소 최상위 기준(spots/photos/…) — 이 페이지도 최상위에 있어 그대로 쓴다
+  function src(p) { return p || ''; }
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayText() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function round5(x) { return Math.round(x * 1e5) / 1e5; }
@@ -305,13 +328,14 @@
     var isSpot = fCat.value === 'spot';
     $('guardian-box').hidden = !isSpot;
     $('spot-extra').hidden = !isSpot;
-    var saved = editingId && spots.some(function (s) { return s.id === editingId && InfraPins.hasGuardian(s); });
+    // 카드는 서비스에 올라간 내용으로 그리므로, 반영된 수호지킴이만 볼 수 있다
+    var saved = editingId && baseSpots.some(function (s) { return s.id === editingId && InfraPins.hasGuardian(s); });
     $('g-card-btn').disabled = !saved;
-    $('g-card-btn').textContent = saved ? '주민증 카드 보기' : '주민증 카드 보기 (수호지킴이를 저장한 뒤에)';
+    $('g-card-btn').textContent = saved ? '주민증 카드 보기' : '주민증 카드 보기 (모두에게 반영한 뒤에)';
   }
   fCat.addEventListener('change', refreshExtras);
   $('g-card-btn').addEventListener('click', function () {
-    if (editingId) window.open('../start.html?guardian=' + encodeURIComponent(editingId), '_blank');
+    if (editingId) window.open('start.html?guardian=' + encodeURIComponent(editingId), '_blank');
   });
 
   function clearForm() {
@@ -431,7 +455,7 @@
         var del = document.createElement('button');
         del.type = 'button'; del.className = 'danger'; del.textContent = '삭제';
         del.addEventListener('click', function () {
-          if (busy || !confirm('"' + (pin.name || cat.label) + '"을(를) 지울까요?\n"모두에게 반영"을 누르기 전까지는 사이트에서 안 지워집니다.')) return;
+          if (busy || !confirm('"' + (pin.name || cat.label) + '"을(를) 지울까요?\n"모두에게 반영"을 누르기 전까지는 서비스에서 안 지워져요.')) return;
           spots = spots.filter(function (s) { return s.id !== pin.id; });
           if (editingId === pin.id) clearForm();
           save().catch(function () {});
@@ -442,8 +466,51 @@
   }
   function renderAll() { if (map) { renderMarkers(); renderList(); } }
 
-  // ── 시작: 관리 서버에서 지금 목록을 받는다 ──
-  api('state').then(function (st) {
+  // ── 시작 ──
+  function showSetup(reason) {
+    block(
+      '<h2 style="margin:0 0 10px;font-size:18px;">스팟 편집 — 운영자 전용</h2>' +
+      (reason ? '<p style="color:var(--danger);font-weight:700;">' + reason + '</p>' : '') +
+      '<p>이 페이지는 운영자 컴퓨터에서만 씁니다. 편집한 내용을 저장소에 바로 커밋하려면 GitHub 토큰이 필요해요.</p>' +
+      '<ol style="padding-left:18px;margin:0 0 12px;">' +
+        '<li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token</li>' +
+        '<li>Repository access: <b>Only select repositories</b> → <code>' + SpotGitHub.OWNER + '/' + SpotGitHub.REPO + '</code></li>' +
+        '<li>Permissions → Repository permissions → <b>Contents: Read and write</b> (다른 권한은 주지 않기)</li>' +
+        '<li>만든 토큰을 아래에 붙여 넣기</li>' +
+      '</ol>' +
+      '<p style="font-size:12px;color:var(--ink-soft);">토큰은 이 브라우저에만 저장되고 GitHub(api.github.com) 말고는 어디로도 보내지 않아요. ' +
+      '토큰을 넣은 브라우저에서만 동네 지도에 "스팟 편집" 버튼이 보여요.</p>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;">' +
+        '<input id="token-input" type="password" autocomplete="off" placeholder="github_pat_..." style="flex:1;font-family:inherit;font-size:14px;padding:9px;border:1px solid var(--panel-border);border-radius:8px;">' +
+        '<button type="button" class="publish" id="token-save">저장</button>' +
+      '</div>'
+    );
+    $('token-save').addEventListener('click', function () {
+      var t = $('token-input').value.trim();
+      if (!t) return;
+      SpotGitHub.setToken(t);
+      $('token-save').disabled = true;
+      SpotGitHub.check().then(function () { location.reload(); })
+        .catch(function (e) { SpotGitHub.setToken(''); showSetup('토큰을 확인하지 못했어요: ' + e.message); });
+    });
+  }
+
+  if (!window.SpotGitHub || !window.InfraPins) { block('필요한 파일을 불러오지 못했어요. 새로고침해 주세요.'); return; }
+  if (!SpotGitHub.hasToken()) { showSetup(); return; }
+
+  $('status-msg').textContent = '저장소에서 불러오는 중…';
+  SpotGitHub.load().then(function (st) {
+    baseSha = st.headSha;
+    baseSpots = st.spots;
+    spots = JSON.parse(JSON.stringify(st.spots));
+    // 반영 안 한 편집이 이 컴퓨터에 남아 있으면 이어서
+    var draft = null;
+    try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) { draft = null; }
+    if (draft && Array.isArray(draft.spots)) {
+      spots = draft.spots;
+      if (draft.baseSha) baseSha = draft.baseSha;
+    }
+
     $('layout').hidden = false;
     map = L.map('map').setView(DEFAULT_CENTER, 15);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
@@ -460,12 +527,12 @@
     });
     $('list-filter').addEventListener('change', renderList);
     clearForm();
-    applyState(st);
+    renderAll();
+    renderStatus();
     setTimeout(function () { map.invalidateSize(); }, 50);
-  }).catch(function () {
-    block('<strong>관리 서버가 꺼져 있어요.</strong><br>' +
-      '저장소의 <code>tools\\spots-admin.bat</code>을 더블클릭하면 서버가 켜지고 이 화면이 다시 열립니다.<br>' +
-      '(명령으로 켜려면 저장소 폴더에서 <code>python tools/admin_server.py</code>)');
+  }).catch(function (e) {
+    if (e.status === 401) { SpotGitHub.setToken(''); showSetup('토큰이 맞지 않거나 만료됐어요. 새로 넣어 주세요.'); return; }
+    block('<strong>저장소에서 불러오지 못했어요.</strong><br>' + e.message + '<br><button type="button" onclick="location.reload()">다시 시도</button>');
   });
 })();
 </script>

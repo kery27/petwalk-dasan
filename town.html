@@ -13,7 +13,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=5"></script>
+<script src="infra-pins.js?v=6"></script>
 <script src="demo-geo.js?v=1"></script>
 <style>
   /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
@@ -101,8 +101,10 @@
 
   .tool-link {
     position: fixed; left: 14px; top: 122px; z-index: 1000;
-    font-size: 11px; color: var(--ink-soft); background: rgba(255, 250, 243, 0.85);
-    padding: 3px 8px; border-radius: var(--radius-pill); text-decoration: none;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 800; color: #fff; background: var(--accent);
+    padding: 8px 14px; border-radius: var(--radius-pill); text-decoration: none;
+    box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.25);
   }
   .tool-link[hidden] { display: none; }
   .leaflet-bottom.leaflet-right { margin-bottom: 0; }
@@ -139,8 +141,11 @@
   </button>
 </div>
 <div class="stars" id="stars" hidden aria-label="동네 스타"></div>
-<!-- 운영자 도구 링크 — 운영자 컴퓨터(localhost)에서 열었을 때만 보인다. 배포된 사이트에는 도구 자체가 없다. -->
-<a class="tool-link" id="tool-link" href="tools/spots.html" hidden>스팟 관리 (내 컴퓨터)</a>
+<!-- 스팟 편집 버튼 — 운영자 기기(편집 페이지에 GitHub 토큰을 넣은 브라우저)에서만 보인다 -->
+<a class="tool-link" id="tool-link" href="spot-editor.html" hidden>
+  <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z"/></svg>
+  스팟 편집
+</a>
 
 <script src="tabbar.js?v=2" data-tab="town"></script>
 <script>
@@ -152,8 +157,8 @@
   var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';  // 위치 쓰는 이유를 이미 설명했는지
   var MIN_ZOOM_FOR_PINS = 13;
 
-  // 스팟 관리 도구는 운영자 컴퓨터에서만 돈다(tools/admin_server.py) — 그때만 링크를 보인다
-  document.getElementById('tool-link').hidden = !InfraPins.isLocalAdmin();
+  // 스팟 편집 버튼은 운영자 기기에서만 — 여기서 고친 내용은 커밋되어 모든 사람에게 반영된다
+  document.getElementById('tool-link').hidden = !InfraPins.isAdminDevice();
 
   function loadJSON(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }

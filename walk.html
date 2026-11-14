@@ -15,7 +15,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=5"></script>
+<script src="infra-pins.js?v=6"></script>
 <script src="demo-geo.js?v=1"></script>
 
 <!-- 본문용 Pretendard(한국어 웹에서 널리 쓰이는 서체, 시스템 기본 서체보다 완성도 높음)
@@ -415,7 +415,7 @@
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
       <a href="course-builder.html" class="tool-item" data-admin hidden><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
-      <a href="tools/spots.html" class="tool-item" data-admin hidden><span class="icon" data-icon="mapPin"></span><span>스팟 관리 (내 컴퓨터)</span></a>
+      <a href="spot-editor.html" class="tool-item" data-admin hidden><span class="icon" data-icon="mapPin"></span><span>스팟 편집 (운영자)</span></a>
     </div>
   </div>
 </div>
@@ -555,9 +555,9 @@
   window.addEventListener('resize', positionZoomControl);
 
   // 메뉴 버튼을 누르면 드롭다운 토글, 바깥을 클릭하면 닫힘.
-  // 관리자 도구 링크는 운영자 컴퓨터(localhost)에서 열었을 때만 보인다 — 배포된 사이트에서는 숨김
+  // 관리자 도구 링크는 운영자 기기(스팟 편집 페이지에 토큰을 넣은 브라우저)에서만 보인다
   try {
-    if (InfraPins.isLocalAdmin()) {
+    if (InfraPins.isAdminDevice()) {
       Array.prototype.forEach.call(document.querySelectorAll('[data-admin]'), function (a) { a.hidden = false; });
     }
   } catch (e) { /* 링크만 안 보인다 */ }

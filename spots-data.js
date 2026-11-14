@@ -1,6 +1,6 @@
 // 동네 스팟 데이터 — 자동 생성 파일.
-// 운영자 컴퓨터의 관리 도구(tools/spots.html + tools/admin_server.py)가 이 파일을 통째로 다시 쓴다.
-// 손으로 고쳐도 되지만 도구로 저장하면 덮어써진다. 사진은 spots/photos/ 에 있다.
+// 운영자의 스팟 편집 페이지(spot-editor.html)가 이 파일을 통째로 다시 쓴다.
+// 손으로 고쳐도 되지만 편집 페이지로 반영하면 덮어써진다. 사진은 spots/photos/ 에 있다.
 // 공용 시설과 가게만 넣는다 — 개인 집이나 특정인의 위치는 넣지 않는다.
 window.PETWALK_SPOTS = [
   {"id":"osm-park-1","cat":"park","name":"다산중앙공원","lat":37.6233046,"lng":127.1596196,"source":"osm"},

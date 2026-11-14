@@ -12,15 +12,6 @@
         "127.0.0.1"
       ],
       "port": 5174
-    },
-    {
-      "name": "petwalk-admin",
-      "runtimeExecutable": "python",
-      "runtimeArgs": [
-        "tools/admin_server.py",
-        "--no-browser"
-      ],
-      "port": 5175
     }
   ]
 }

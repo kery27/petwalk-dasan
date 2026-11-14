@@ -1,9 +1,9 @@
 // 동네 스팟(시설·가게·주의 구역) — town.html([동네]), walk.html(산책 화면), start.html(수호지킴이 카드),
-// tools/spots.html(운영자 관리 도구)이 같이 쓴다. 전역 window.InfraPins.
+// spot-editor.html(운영자 스팟 편집)이 같이 쓴다. 전역 window.InfraPins.
 // 고치면 쓰는 화면들의 `infra-pins.js?v=N` 버전을 같이 올릴 것(card-shared.js와 같은 캐시 문제).
 //
 // 데이터는 spots-data.js(window.PETWALK_SPOTS)에서 온다 — 이 파일보다 먼저 불러야 한다(2026-11-14).
-// spots-data.js는 운영자 컴퓨터의 관리 도구가 저장하고, "모두에게 반영"을 누르면 배포된다.
+// spots-data.js는 운영자의 스팟 편집 페이지가 "모두에게 반영"으로 커밋하면 배포된다.
 // 예전처럼 휴대폰 안(localStorage)에 따로 고쳐 둔 내용은 더 이상 읽지 않는다.
 //
 // 개인정보: 공용 시설과 가게 좌표만 둔다. 사용자 위치는 이 파일에서 읽지도 보내지도 않는다.
@@ -188,8 +188,11 @@
     return wrap;
   }
 
-  // 운영자 컴퓨터에서 연 화면인지(관리 도구 링크를 보일지). 배포된 사이트에서는 항상 false.
-  function isLocalAdmin() {
+  // 운영자 기기인지 — 스팟 편집 버튼을 보일지(2026-11-15).
+  // 스팟 편집 페이지(spot-editor.html)에 GitHub 토큰을 넣은 브라우저만 운영자 기기로 본다.
+  // 잠금은 이 판정이 아니라 토큰이다 — 토큰이 없으면 편집 페이지를 열어도 저장소에 쓸 수 없다.
+  function isAdminDevice() {
+    try { if (localStorage.getItem('petwalk_admin_token')) return true; } catch (e) { /* 무시 */ }
     return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
   }
 
@@ -197,6 +200,6 @@
     CATEGORIES: CATEGORIES, SEED: SEED, all: all,
     category: category, iconSvg: iconSvg, markerHtml: markerHtml, markerFor: markerFor, sourceText: sourceText,
     SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
-    popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isLocalAdmin: isLocalAdmin
+    popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice
   };
 })();
