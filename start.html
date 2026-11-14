@@ -61,7 +61,8 @@
   }
   .photo-picker { display: flex; justify-content: center; margin-bottom: 20px; }
   .photo-btn {
-    position: relative; width: 132px; height: 132px; border-radius: 26px;
+    /* 카드의 사진 칸(460×520)과 같은 비율 — 여기서 보이는 대로 카드에 들어간다 */
+    position: relative; width: 124px; height: 140px; border-radius: 22px;
     background: var(--accent-tint); border: 2px dashed var(--panel-border);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
     cursor: pointer; overflow: hidden; padding: 0; font-family: inherit; color: var(--accent);
@@ -98,9 +99,20 @@
 
   /* 3단계: 카드 */
   .card-img {
-    display: block; width: 100%; height: auto; border-radius: 16px;
+    /* 스토리용(세로로 긴 그림)을 골라도 저장 버튼이 화면 밖으로 밀리지 않게 높이를 묶는다 */
+    display: block; max-width: 100%; max-height: 56vh; width: auto; height: auto; margin: 0 auto; border-radius: 16px;
     box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.22);
   }
+  .format {
+    display: flex; gap: 4px; padding: 4px; margin: 14px auto 0; width: max-content;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px;
+  }
+  .format button {
+    border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
+    padding: 8px 16px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .format button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .format + .btn-main { margin-top: 12px; }
   .save-hint { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 10px 0 0; }
   .extra { margin-top: 18px; font-size: 13px; line-height: 1.6; color: var(--ink-soft); }
   .extra[hidden] { display: none; }
@@ -160,6 +172,12 @@
     <h1 id="done-title">주민증이 나왔어요</h1>
     <p class="lead">저장해서 가족이나 친구에게 자랑해 보세요.</p>
     <img class="card-img" id="card-img" alt="댕댕이 주민증 카드">
+    <!-- 저장 모양(2026-11-14 피드백): 가로 카드만 저장하면 인스타 스토리·카톡 프로필에서 양옆이 잘린다 -->
+    <div class="format" role="group" aria-label="저장할 모양">
+      <button type="button" data-format="card" aria-pressed="true">카드만</button>
+      <button type="button" data-format="square" aria-pressed="false">정사각형</button>
+      <button type="button" data-format="story" aria-pressed="false">스토리용</button>
+    </div>
     <button type="button" class="btn-main" id="save-btn">이미지 저장</button>
     <p class="save-hint">저장이 안 되면 카드를 길게 눌러 저장하세요.</p>
     <a class="btn-sub" href="town.html">동네 지도 보러 가기</a>
@@ -176,6 +194,10 @@
 
 <canvas id="card-canvas" width="1600" height="1000" hidden></canvas>
 
+<!-- 카드에 넣는 QR을 그리는 라이브러리(MIT). 이 휴대폰 안에서만 계산하고 어디로도 보내지 않는다.
+     못 받아오면(오프라인 등) QR 없이 주소 글자만 들어간다. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -185,6 +207,11 @@
   var KAKAO_CHANNEL_URL = '';
   // 키링 안내 문구: 조건·수량·받는 날이 정해지면 넣는다(기획표 V2-10). 정해지기 전에 약속하지 않는다.
   var KEYRING_NOTE = '';
+  // 카드에 찍는 "나도 만들기" 주소(2026-11-14 피드백: 카드를 본 사람이 들어올 입구가 없었다).
+  // 주의: 저장된 카드는 계속 돌아다니는데, 지금 주소는 GitHub 계정·저장소 이름에 묶여 있어 옮기면 깨진다.
+  // 내 도메인을 연결하면(QR_RULES.md — pet.johnsongarage.co.kr, 지금은 보류) 여기 두 값을 그 주소로 바꿀 것.
+  var SHARE_URL = 'https://kery27.github.io/petwalk-dasan/start.html';
+  var SHARE_URL_TEXT = 'kery27.github.io/petwalk-dasan';
 
   var SIGNALS = {
     green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
@@ -439,13 +466,91 @@
 
     ctx.strokeStyle = LINE;
     ctx.beginPath(); ctx.moveTo(96, 880); ctx.lineTo(W - 96, 880); ctx.stroke();
+    // "나도 만들기" QR — 오른쪽 아래 빈자리. 흰 바탕에 사방 여백을 둬야 카메라가 읽는다.
+    drawQr(ctx, SHARE_URL, W - 96 - 200, 684, 200);
+
     ctx.fillStyle = SOFT;
+    var footLeft = '다산동 산책 다이어리 · ' + SHARE_URL_TEXT;
+    ctx.font = font(600, fitText(ctx, footLeft, 760, 30, 600));
+    ctx.fillText(footLeft, 96, 934);
     ctx.font = font(600, 30);
-    ctx.fillText('다산동 산책 다이어리', 96, 934);
     ctx.textAlign = 'right';
     ctx.fillText('재미로 만든 카드예요 · 공식 신분증이 아니에요', W - 96, 934);
     ctx.textAlign = 'left';
   }
+
+  // QR을 size×size 칸에 그린다. 라이브러리가 없으면 아무것도 그리지 않는다.
+  function drawQr(ctx, text, x, y, size) {
+    if (typeof qrcode !== 'function') return;
+    var qr;
+    // 오류 정정은 가장 낮은 L — 화면으로 보는 그림이라 긁힐 일이 없고, 칸이 굵어져 작게 줄여도 읽힌다
+    try { qr = qrcode(0, 'L'); qr.addData(text); qr.make(); } catch (e) { return; }
+    var n = qr.getModuleCount();
+    var quiet = 3;                                  // 사방 여백(칸 수)
+    var cell = Math.floor(size / (n + quiet * 2));
+    var real = cell * (n + quiet * 2);
+    var ox = x + size - real, oy = y;               // 오른쪽 위에 맞춘다
+    roundRect(ctx, ox, oy, real, real, 14);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.fillStyle = '#4a3f35';
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(ox + (c + quiet) * cell, oy + (r + quiet) * cell, cell, cell);
+      }
+    }
+  }
+
+  // 저장 모양: 카드만(1600×1000) / 정사각형(1080×1080, 카톡·피드) / 스토리용(1080×1920).
+  // 정사각형·스토리용은 파스텔 바탕 가운데에 카드를 올려서, 올렸을 때 양옆이 잘리지 않게 한다.
+  var exportFormat = 'card';
+  var exportCanvas = null;
+  function composeExport() {
+    if (exportFormat === 'card') { exportCanvas = canvas; return canvas; }
+    var W = 1080, H = exportFormat === 'story' ? 1920 : 1080;
+    var out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    var ctx = out.getContext('2d');
+    var sig = SIGNALS[profile.signal] || SIGNALS.green;
+    ctx.fillStyle = '#f7ede2';
+    ctx.fillRect(0, 0, W, H);
+    // 위아래에 신호등 색 띠를 얇게 — 어떤 신호등인지 멀리서도 보이게
+    ctx.fillStyle = sig.color;
+    ctx.fillRect(0, 0, W, 18);
+    ctx.fillRect(0, H - 18, W, 18);
+    var cw = 960, ch = 600, cx = (W - cw) / 2, cy = Math.round((H - ch) / 2) - (exportFormat === 'story' ? 60 : 30);
+    ctx.save();
+    ctx.shadowColor = 'rgba(74, 63, 53, 0.25)';
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 14;
+    roundRect(ctx, cx, cy, cw, ch, 38);
+    ctx.fillStyle = sig.color;
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(canvas, cx, cy, cw, ch);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#4a3f35';
+    ctx.font = font(800, 44);
+    ctx.fillText(profile.name + ' · ' + sig.line, W / 2, cy + ch + 96);
+    ctx.fillStyle = '#8a7a68';
+    ctx.font = font(600, 30);
+    ctx.fillText('나도 만들기  ' + SHARE_URL_TEXT, W / 2, cy + ch + 150);
+    ctx.textAlign = 'left';
+    exportCanvas = out;
+    return out;
+  }
+  function refreshPreview() {
+    cardImg.src = composeExport().toDataURL('image/png');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.format button'), function (btn) {
+    btn.addEventListener('click', function () {
+      exportFormat = btn.getAttribute('data-format');
+      Array.prototype.forEach.call(document.querySelectorAll('.format button'), function (b) {
+        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+      });
+      refreshPreview();
+    });
+  });
 
   function renderCard() {
     // 웹폰트가 아직 안 왔으면 기다렸다가 그린다(안 오면 기기 글꼴로 그려진다)
@@ -455,16 +560,16 @@
     return Promise.all([loadImage(profile.photo), fontsReady]).then(function (res) {
       photoImage = res[0];
       drawCard(photoImage);
-      cardImg.src = canvas.toDataURL('image/png');
+      refreshPreview();
       document.getElementById('done-title').textContent = profile.name + '의 주민증이 나왔어요';
     });
   }
 
   // 저장: 휴대폰은 공유 시트(사진 앱에 저장 가능), 안 되면 파일로 내려받기
   document.getElementById('save-btn').addEventListener('click', function () {
-    canvas.toBlob(function (blob) {
+    (exportCanvas || canvas).toBlob(function (blob) {
       if (!blob) return;
-      var fileName = (profile.name || 'dog') + '-주민증.png';
+      var fileName = (profile.name || 'dog') + '-주민증' + (exportFormat === 'card' ? '' : '-' + exportFormat) + '.png';
       var file = null;
       try { file = new File([blob], fileName, { type: 'image/png' }); } catch (e) { file = null; }
       if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
