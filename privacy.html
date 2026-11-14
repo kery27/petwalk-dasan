@@ -2,109 +2,22 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>개인정보 안내</title>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
-<meta name="theme-color" content="#f7ede2">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<style>
-  /* 개인정보 안내(2026-11-14, 기획표 V0-13). 지금 앱이 실제로 하는 일만 적는다 — 코드를 바꿔서
-     밖으로 나가는 정보가 생기거나 없어지면 이 화면을 같이 고친다. 서버를 붙이면 정식 처리방침과
-     위치기반서비스 이용약관으로 바꿔야 한다(LBS_REPORT_DRAFT.md). */
-  :root {
-    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
-    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a;
-    --shadow-rgb: 74, 63, 53;
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-    color: var(--ink); background: var(--bg);
-  }
-  body { padding: 16px 16px 40px; }
-  .wrap { max-width: 520px; margin: 0 auto; }
-  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .topbar a {
-    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; border-radius: 12px; text-decoration: none;
-    background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink);
-    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
-  }
-  .topbar h1 { font-weight: 800; font-size: 20px; margin: 0; letter-spacing: -0.01em; }
-  .lead { font-size: 15px; line-height: 1.65; margin: 0 0 16px; }
-  section {
-    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px;
-    padding: 16px 18px; margin-bottom: 12px;
-  }
-  h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; }
-  ul { margin: 0; padding-left: 18px; }
-  li { font-size: 14px; line-height: 1.65; margin-bottom: 4px; }
-  li strong { font-weight: 700; }
-  .date { font-size: 12px; color: var(--ink-soft); margin-top: 16px; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>왈슨으로 옮겼어요</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://johnsongarage.co.kr/walson/privacy.html">
+<!-- 2026-11-15 이 서비스는 johnsongarage/walson 저장소, https://johnsongarage.co.kr/walson/ 으로 옮겼다.
+     예전 주소로 들어온 사람(공유된 링크, 홈 화면 앱, 주민증 카드 QR)을 같은 화면으로 넘긴다. 주소 뒤 ?·# 부분도 그대로 넘긴다. -->
+<script>
+  (function () {
+    var page = location.pathname.replace(/^\/petwalk-dasan\/?/, '');
+    location.replace('https://johnsongarage.co.kr/walson/' + page + location.search + location.hash);
+  })();
+</script>
+<meta http-equiv="refresh" content="0; url=https://johnsongarage.co.kr/walson/privacy.html">
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F2B833;color:#4A3624;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;text-align:center;padding:24px}a{color:#4A3624;font-weight:700}</style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar">
-    <a href="index.html" title="오늘로 돌아가기">←</a>
-    <h1>개인정보 안내</h1>
-  </div>
-
-  <p class="lead">
-    이 앱은 지금 시범 운영 중이고 <strong>서버가 없습니다.</strong> 회원가입도 없습니다.
-    기록은 모두 이 휴대폰(브라우저) 안에만 저장되고, 운영자는 볼 수 없습니다.
-  </p>
-
-  <section>
-    <h2>이 휴대폰 안에만 저장되는 것</h2>
-    <ul>
-      <li><strong>강아지 프로필</strong>: 이름, 사진, 크기, 산책 신호등, 주민증 카드 번호</li>
-      <li><strong>산책 기록</strong>: 시간, 그리고 길도 기록했을 때는 걸은 길(위치)과 거리</li>
-      <li><strong>산책 뒤에 답한 것</strong>: 충분했는지, 킁킁 지수, 응가</li>
-      <li><strong>오늘의 한 장</strong>: 산책 끝 화면에서 남긴 사진. 작게 줄이고 촬영 위치 정보를 뺀 채 이 휴대폰 안에만 저장해요.</li>
-      <li><strong>내가 찍은 핀과 메모</strong></li>
-      <li>사진은 작게 줄여서 저장하고, 이때 사진에 붙어 있던 촬영 위치 정보는 빠집니다.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>위치 정보</h2>
-    <ul>
-      <li>첫 화면([오늘])과 기록·카드 화면은 위치를 읽지 않습니다.</li>
-      <li>위치는 산책 화면을 열었을 때와 [동네] 지도에서 "내 위치" 버튼을 눌렀을 때만 읽습니다. 먼저 이유를 설명하고 허락을 구합니다.</li>
-      <li>읽은 위치는 지도에 그리고 이 휴대폰에 저장하는 데만 씁니다.</li>
-      <li>주민증 만들기 화면은 위치를 묻지 않습니다.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>앱 밖으로 나가는 것</h2>
-    <ul>
-      <li><strong>지도 그림</strong>: 지금 보고 있는 지역의 지도 조각을 OpenStreetMap 서버에서 받아옵니다. 어느 지역을 보는지와 접속 주소(IP)가 그쪽에 전달됩니다.</li>
-      <li><strong>길찾기</strong>: 시설 핀의 "길찾기"를 누르면 그 시설의 이름과 좌표로 카카오맵이 열립니다. 내 위치는 보내지 않습니다.</li>
-      <li><strong>글꼴·지도 프로그램</strong>: 화면을 그리는 데 필요한 파일을 외부 배포 서버(jsDelivr, unpkg, Google Fonts)에서 받아옵니다. 접속 주소(IP)가 전달됩니다.</li>
-      <li>이 사이트는 GitHub Pages로 제공되어, 접속 기록이 GitHub에 남을 수 있습니다.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>지우는 방법</h2>
-    <ul>
-      <li>내가 찍은 핀은 지도에서 눌러 하나씩 지울 수 있습니다.</li>
-      <li>산책 기록을 하나씩 지우는 기능은 아직 없습니다.</li>
-      <li>전부 지우려면 브라우저 설정에서 이 사이트의 데이터를 삭제하면 됩니다. 홈 화면에 추가했다면 앱을 지워도 됩니다.</li>
-      <li>휴대폰을 바꾸거나 사이트 데이터를 지우면 기록은 되살릴 수 없습니다.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>앞으로 바뀌면</h2>
-    <ul>
-      <li>서버에 무언가를 보내는 기능을 넣게 되면, 무엇을 어디로 보내고 누가 볼 수 있는지 먼저 알리고 따로 동의를 받겠습니다.</li>
-    </ul>
-  </section>
-
-  <p class="date">2026년 11월 14일 기준 · 왈슨(시범 운영)</p>
-</div>
+<p>왈슨은 새 주소로 옮겼어요.<br><a href="https://johnsongarage.co.kr/walson/privacy.html">johnsongarage.co.kr/walson</a>으로 이동합니다.</p>
 </body>
 </html>

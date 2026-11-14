@@ -1,3 +1,5 @@
+> **옮겼습니다(2026-11-15)**: 이 서비스는 [johnsongarage/walson](https://github.com/johnsongarage/walson), https://johnsongarage.co.kr/walson/ 에서 계속합니다. 이 저장소의 화면들은 새 주소로 넘기기만 합니다.
+
 # 산책 다이어리 (다산동 반려동물 산책 SNS)
 
 다산동 아웃렛 주변 반려동물 보호자를 위한 산책 기록/공유 서비스 프로토타입.
