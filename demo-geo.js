@@ -5,7 +5,7 @@
 // 켜는 법: 주소 뒤에 ?demo=1 (끄기: ?demo=0 또는 화면 위 배지의 "끄기").
 // 켜져 있는 동안 이 탭에서는 navigator.geolocation이 진짜 GPS 대신 다산중앙공원 둘레를 도는
 // 가짜 좌표를 돌려준다. 진짜 위치는 읽지 않는다(브라우저 권한 창도 뜨지 않는다).
-// 탭을 닫으면 꺼진다(sessionStorage). index.html에서 본 스크립트보다 먼저 불러야 한다.
+// 탭을 닫으면 꺼진다(sessionStorage). walk.html·town.html에서 본 스크립트보다 먼저 불러야 한다.
 (function () {
   var KEY = 'petwalk_demo_geo';
   var m = /[?&]demo=([01])/.exec(location.search);

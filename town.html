@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>동네</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="reward-rules.js?v=2"></script>
+<script src="infra-pins.js?v=2"></script>
+<script src="demo-geo.js?v=1"></script>
+<style>
+  /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
+     보여 주는 것: 동네 시설 핀, 주의 구역, 내 발도장(공원·아울렛), 산책 중에 내가 찍어 둔 핀.
+     산책을 기록하는 화면이 아니다 — 기록은 walk.html.
+     지도는 다산동 산책 벨트에 고정해서 연다. 열 때 내 위치를 읽지 않는다(집 근처가 저절로 뜨지 않게).
+     내 위치는 오른쪽 버튼을 눌렀을 때만, 이유를 먼저 설명하고 읽는다. 밖으로 보내는 것은 지도 타일 요청뿐. */
+  :root {
+    --bg: #f7ede2; --bg-deep: #efe0cd; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --locate: #3b7dc4;
+    --shadow-rgb: 74, 63, 53; --radius-pill: 999px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  /* tabbar.js가 body에 아래 여백을 넣는데, 이 화면은 지도가 직접 탭 위까지만 차도록 잡는다 */
+  body { padding: 0 !important; overflow: hidden; }
+  #map { position: fixed; top: 0; left: 0; right: 0; bottom: var(--tabbar-h, 58px); background: var(--bg-deep); }
+  .leaflet-container { font-family: inherit; }
+  /* OSM 기본 지도를 앱의 파스텔 톤으로 눌러 준다 — walk.html과 같은 값 */
+  .leaflet-tile-pane { filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%); }
+
+  .title-chip {
+    position: fixed; top: 14px; left: 14px; z-index: 1000;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-pill);
+    padding: 9px 16px; font-size: 15px; font-weight: 800;
+    box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.15);
+  }
+  .chips {
+    position: fixed; top: 62px; left: 14px; right: 60px; z-index: 1000;
+    display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+    min-height: 32px; padding: 0 9px 0 7px; border-radius: var(--radius-pill);
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink-soft);
+    font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .chip:active { transform: scale(0.96); }
+  .chip .dot { width: 18px; height: 18px; border-radius: 50%; color: #fff; opacity: 0.45; display: flex; align-items: center; justify-content: center; }
+  .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ink-soft); }
+  .chip[aria-pressed="true"] .dot { opacity: 1; }
+  .chip .count { font-weight: 500; color: var(--ink-soft); }
+
+  /* 상시 주의 문구(기획표 V1-21) — 핀이 없는 곳을 "안전하다"고 읽지 않게 */
+  .caveat {
+    position: fixed; top: 100px; left: 18px; right: 60px; z-index: 999; margin: 0;
+    font-size: 11px; font-weight: 700; color: var(--ink-soft); pointer-events: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 6px var(--bg);
+  }
+
+  .side { position: fixed; top: 14px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+  .side button {
+    width: 38px; height: 38px; padding: 0; border: none; border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%); color: var(--ink);
+    font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 14px rgba(var(--shadow-rgb), 0.18);
+  }
+  .side button:active { transform: scale(0.94); }
+
+  .tool-link {
+    position: fixed; left: 12px; bottom: calc(var(--tabbar-h, 58px) + 8px); z-index: 1000;
+    font-size: 11px; color: var(--ink-soft); background: rgba(255, 250, 243, 0.85);
+    padding: 3px 8px; border-radius: var(--radius-pill); text-decoration: none;
+  }
+  .leaflet-bottom.leaflet-right { margin-bottom: 0; }
+
+  .popup { display: flex; flex-direction: column; gap: 4px; min-width: 150px; font-size: 13px; }
+  .popup-cat { font-size: 11px; font-weight: 700; }
+  .popup-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .popup-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .popup-tags span { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: var(--radius-pill); background: var(--bg-deep); color: var(--ink); }
+  .popup-source { font-size: 11px; color: var(--ink-soft); }
+  .popup-links { display: flex; gap: 12px; margin-top: 2px; }
+  .popup-links a { font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none; }
+
+  .my-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--locate); border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(59, 125, 196, 0.25); }
+  .my-pin { width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--accent); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(var(--shadow-rgb), 0.35); }
+  .stamp {
+    display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%;
+    border: 2px dashed var(--ink-soft); color: var(--ink-soft); background: rgba(255, 250, 243, 0.9);
+  }
+  .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div class="title-chip">동네</div>
+<div class="chips" id="chips" role="group" aria-label="지도에 보일 것"></div>
+<p class="caveat">핀이 없다고 안전한 건 아니에요 · 바닥은 직접 확인</p>
+<div class="side">
+  <button type="button" id="zoom-in" aria-label="확대">+</button>
+  <button type="button" id="zoom-out" aria-label="축소">−</button>
+  <button type="button" id="locate-btn" aria-label="내 위치 보기">
+    <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232,120H215.63A88.13,88.13,0,0,0,136,40.37V24a8,8,0,0,0-16,0V40.37A88.13,88.13,0,0,0,40.37,120H24a8,8,0,0,0,0,16H40.37A88.13,88.13,0,0,0,120,215.63V232a8,8,0,0,0,16,0V215.63A88.13,88.13,0,0,0,215.63,136H232a8,8,0,0,0,0-16Zm-104,80a72,72,0,1,1,72-72A72.08,72.08,0,0,1,128,200Zm0-112a40,40,0,1,0,40,40A40,40,0,0,0,128,88Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,152Z"/></svg>
+  </button>
+</div>
+<!-- 운영자 도구 — 현장에서 시설·주의 구역을 찍을 때 쓴다. 당분간만 보이게 둔다. -->
+<a class="tool-link" href="infra-builder.html">시설 핀 관리</a>
+
+<script src="tabbar.js?v=1" data-tab="town"></script>
+<script>
+(function () {
+  var DEFAULT_CENTER = [37.6212, 127.1525]; // 아울렛·다산중앙공원·다산수변공원의 가운데(walk.html과 같은 값)
+  var WALKS_KEY = 'petwalk_walks';
+  var PINS_KEY = 'petwalk_pins';                              // 산책 중에 내가 찍은 핀(walk.html이 저장)
+  var FILTER_KEY = 'petwalk_infra_filter';                    // 꺼 둔 종류 — walk.html과 같이 쓴다
+  var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';  // 위치 쓰는 이유를 이미 설명했는지
+  var MIN_ZOOM_FOR_PINS = 13;
+
+  function loadJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
+  }
+
+  var map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, 15);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  document.getElementById('zoom-in').addEventListener('click', function () { map.zoomIn(); });
+  document.getElementById('zoom-out').addEventListener('click', function () { map.zoomOut(); });
+
+  // ── 레이어: 시설 종류별 + 내 발도장 + 내 핀 ──
+  var layers = {};   // key → L.layerGroup
+  var counts = {};
+  var hidden = {};
+  loadJSON(FILTER_KEY, []).forEach(function (k) { hidden[k] = true; });
+  function saveHidden() {
+    try { localStorage.setItem(FILTER_KEY, JSON.stringify(Object.keys(hidden))); } catch (e) { /* 저장 실패해도 화면엔 반영됨 */ }
+  }
+  function addTo(key, marker) {
+    if (!layers[key]) layers[key] = L.layerGroup();
+    counts[key] = (counts[key] || 0) + 1;
+    marker.addTo(layers[key]);
+  }
+
+  function infraPopup(pin) {
+    var cat = InfraPins.category(pin.cat);
+    var wrap = document.createElement('div');
+    wrap.className = 'popup';
+    var catEl = document.createElement('div');
+    catEl.className = 'popup-cat';
+    catEl.style.color = cat.color;
+    catEl.textContent = cat.label;
+    wrap.appendChild(catEl);
+    var nameEl = document.createElement('div');
+    nameEl.className = 'popup-name';
+    nameEl.textContent = pin.name || cat.label;
+    wrap.appendChild(nameEl);
+    if (pin.tags && pin.tags.length) {
+      var tagsEl = document.createElement('div');
+      tagsEl.className = 'popup-tags';
+      pin.tags.forEach(function (t) { var s = document.createElement('span'); s.textContent = t; tagsEl.appendChild(s); });
+      wrap.appendChild(tagsEl);
+    }
+    if (pin.note) { var noteEl = document.createElement('div'); noteEl.textContent = pin.note; wrap.appendChild(noteEl); }
+    // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
+    var srcEl = document.createElement('div');
+    srcEl.className = 'popup-source';
+    srcEl.textContent = InfraPins.sourceText(pin);
+    wrap.appendChild(srcEl);
+    var links = document.createElement('div');
+    links.className = 'popup-links';
+    // 길찾기는 카카오맵 웹 링크 — 넘기는 건 이 공용 시설의 이름·좌표뿐이고 내 위치는 넣지 않는다
+    var nav = document.createElement('a');
+    nav.href = 'https://map.kakao.com/link/to/' + encodeURIComponent(pin.name || cat.label) + ',' + pin.lat + ',' + pin.lng;
+    nav.target = '_blank'; nav.rel = 'noopener'; nav.textContent = '길찾기';
+    links.appendChild(nav);
+    if (pin.phone) {
+      var tel = document.createElement('a');
+      tel.href = 'tel:' + String(pin.phone).replace(/[^0-9+]/g, '');
+      tel.textContent = '전화 걸기';
+      links.appendChild(tel);
+    }
+    wrap.appendChild(links);
+    return wrap;
+  }
+
+  InfraPins.all().forEach(function (pin) {
+    if (!InfraPins.category(pin.cat) || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return;
+    var icon = L.divIcon({ className: '', html: InfraPins.markerHtml(pin.cat), iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -12] });
+    addTo(pin.cat, L.marker([pin.lat, pin.lng], { icon: icon, title: pin.name || '' }).bindPopup(infraPopup(pin)));
+  });
+
+  // 내 발도장 — 자라는 카드의 장소 도장(reward-rules.js PLACES)과 같은 판정. 지나간 곳은 채워서 보여 준다.
+  var STAMP_SVG = '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm72,0a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm23.12,60.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72Z"/></svg>';
+  var progress = RewardRules.computeProgress(loadJSON(WALKS_KEY, []));
+  RewardRules.PLACES.forEach(function (pl) {
+    if (pl.pending) return;
+    var done = !!progress.visited[pl.id];
+    var icon = L.divIcon({ className: '', html: '<div class="stamp' + (done ? ' is-done' : '') + '">' + STAMP_SVG + '</div>', iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -14] });
+    var wrap = document.createElement('div');
+    wrap.className = 'popup';
+    var nameEl = document.createElement('div');
+    nameEl.className = 'popup-name';
+    nameEl.textContent = pl.name + ' 발도장';
+    var stateEl = document.createElement('div');
+    stateEl.className = 'popup-source';
+    stateEl.textContent = done ? '산책으로 지나가서 도장을 찍었어요.' : '아직이에요. 산책으로 지나가면 찍혀요.';
+    wrap.appendChild(nameEl);
+    wrap.appendChild(stateEl);
+    addTo('stamp', L.marker(pl.center, { icon: icon, title: pl.name, zIndexOffset: -100 }).bindPopup(wrap));
+  });
+
+  // 산책 중에 내가 찍어 둔 핀 — 여기서는 보기만 한다(지우기는 산책 화면에서)
+  loadJSON(PINS_KEY, []).forEach(function (p) {
+    if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+    var icon = L.divIcon({ className: '', html: '<div class="my-pin"></div>', iconSize: [22, 22], iconAnchor: [11, 22], popupAnchor: [0, -20] });
+    var wrap = document.createElement('div');
+    wrap.className = 'popup';
+    var memo = document.createElement('div');
+    memo.textContent = p.memo || '메모 없음';
+    var src = document.createElement('div');
+    src.className = 'popup-source';
+    src.textContent = '내가 찍은 핀 · 이 휴대폰에만 있어요';
+    wrap.appendChild(memo);
+    wrap.appendChild(src);
+    addTo('mine', L.marker([p.lat, p.lng], { icon: icon }).bindPopup(wrap));
+  });
+
+  function sync() {
+    var zoomOk = map.getZoom() >= MIN_ZOOM_FOR_PINS;
+    Object.keys(layers).forEach(function (key) {
+      var show = zoomOk && !hidden[key];
+      if (show && !map.hasLayer(layers[key])) map.addLayer(layers[key]);
+      if (!show && map.hasLayer(layers[key])) map.removeLayer(layers[key]);
+    });
+  }
+
+  // 칩: 핀이 하나도 없는 종류는 만들지 않는다(눌러도 아무것도 안 나오는 버튼을 두지 않기 위함)
+  var chipsEl = document.getElementById('chips');
+  var chipDefs = InfraPins.CATEGORIES.map(function (c) {
+    return { key: c.key, label: c.label, color: c.color, iconHtml: InfraPins.iconSvg(c.key, 11) };
+  }).concat([
+    { key: 'stamp', label: '내 발도장', color: '#b8563a', iconHtml: '' },
+    { key: 'mine', label: '내 핀', color: '#b8563a', iconHtml: '' }
+  ]);
+  chipDefs.forEach(function (def) {
+    if (!counts[def.key]) return;
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.setAttribute('aria-pressed', hidden[def.key] ? 'false' : 'true');
+    chip.innerHTML = '<span class="dot" style="background:' + def.color + '">' + def.iconHtml + '</span>';
+    var label = document.createElement('span');
+    label.textContent = def.label;
+    chip.appendChild(label);
+    var count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = counts[def.key];
+    chip.appendChild(count);
+    chip.addEventListener('click', function () {
+      if (hidden[def.key]) delete hidden[def.key]; else hidden[def.key] = true;
+      chip.setAttribute('aria-pressed', hidden[def.key] ? 'false' : 'true');
+      saveHidden();
+      sync();
+    });
+    chipsEl.appendChild(chip);
+  });
+  map.on('zoomend', sync);
+  sync();
+
+  // ── 내 위치: 버튼을 눌렀을 때만, 이유를 먼저 설명하고 읽는다. 지도에 점만 찍고 저장하지 않는다. ──
+  var myDot = null;
+  document.getElementById('locate-btn').addEventListener('click', function () {
+    if (!navigator.geolocation) { alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.'); return; }
+    var explained = false;
+    try { explained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 다시 설명 */ }
+    if (!explained) {
+      if (!confirm('지도에 내 위치를 표시하려면 위치 정보 접근 권한이 필요합니다. 위치는 이 화면에 점으로만 보여 주고 저장하거나 보내지 않아요. 허용할까요?')) return;
+      try { localStorage.setItem(LOCATION_EXPLAINED_KEY, '1'); } catch (e) { /* 다음에 다시 설명 */ }
+    }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var coord = [pos.coords.latitude, pos.coords.longitude];
+      if (myDot) myDot.setLatLng(coord);
+      else myDot = L.marker(coord, { icon: L.divIcon({ className: '', html: '<div class="my-dot"></div>', iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false }).addTo(map);
+      map.setView(coord, 17, { animate: true });
+    }, function (err) {
+      alert('현재 위치를 가져오지 못했습니다: ' + err.message);
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-// 동네 시설 핀(인프라 지도) — index.html(첫 화면 표시)과 infra-builder.html(운영자 입력 도구)이 같이 쓴다.
+// 동네 시설 핀(인프라 지도) — town.html([동네] 지도), walk.html(산책 화면), infra-builder.html(운영자 입력 도구)이 같이 쓴다.
 // 전역 window.InfraPins. 고치면 두 파일의 `infra-pins.js?v=N` 버전을 같이 올릴 것(card-shared.js와 같은 캐시 문제).
 //
 // 데이터는 두 군데서 온다:
